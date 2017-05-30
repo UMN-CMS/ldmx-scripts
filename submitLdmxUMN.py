@@ -15,7 +15,6 @@ usage = "usage: %prog [options]"
 parser = argparse.ArgumentParser(usage)
 parser.add_argument("--doPileup"  , dest="doPileup"  , help="Inject n additional particles into event", default=0, type=int)
 parser.add_argument("--enablePoisson" , dest="enablePoisson" , help="Poisson distribute number of e per event", default=False, action="store_true")
-parser.add_argument("--energy"    , dest="energy"    , help="particle energy in GeV"        , default=4  , type=float)
 parser.add_argument("--geometry"  , dest="geometry"  , help="specify geometry version to use", default="v0", type=str)
 parser.add_argument("--lheDir"    , dest="lheDir"    , help="directory containing .lhe files", default="/default/")
 parser.add_argument("--noLogging" , dest="noLogging" , help="disable logging capabilities", default=False, action="store_true")
@@ -23,16 +22,15 @@ parser.add_argument("--noSubmit"  , dest="noSubmit"  , help="do not submit to cl
 parser.add_argument("--numEvents" , dest="numEvents" , help="number of events per job"      , default=100, type=int)
 parser.add_argument("--numJobs"   , dest="numJobs"   , help="number of jobs to run"         , default=1, type=int)
 parser.add_argument("--outputDir" , dest="outputDir" , help="output directory for root files", required=True)
-parser.add_argument("--particle"  , dest="particle"  , help="choose particle via pdgID"     , default=0, type=int)
-parser.add_argument("--phi"       , dest="phi"       , help="phi angle in degrees"          , default=0  , type=float)
+parser.add_argument("--particle"  , dest="particle"  , help="choose beam particle via pdgID (not pileup!)", default=0, type=int)
 parser.add_argument("--smearBeam" , dest="smearBeam" , help="smear the beamspot", default=False, action="store_true")
-parser.add_argument("--theta"     , dest="theta"     , help="theta angle in degrees"        , default=4.5  , type=float)
-parser.add_argument("--vertex"    , nargs="*", dest="vertex" , help="particle vertex in mm" , default=[-27.9260,5,-700], type=float)
 arg = parser.parse_args()
 
 outputDir = arg.outputDir
 ldmxBase = "/home/hiltbran/Projects/LDMX"
 workingDir = os.path.dirname(sys.argv[0])
+
+beamEnergy = 4.0 # In GeV
 
 # Do some basic checks on integer arguments
 if arg.numEvents < 0:
@@ -73,43 +71,45 @@ if arg.lheDir != "/default/":
     # Strip trailing slash from .lhe directory
     if arg.lheDir.split("/")[-1] == "": lheDir = arg.lheDir[:-1]
 
-if arg.doPileup >= 0 and arg.particle != 0:
-    outTag = "%d_%gGeV_%s_"%(arg.numEvents,arg.energy,arg.geometry)
+outTag = "%d_%gGeV_%s_electrons"%(arg.numEvents,beamEnergy,arg.geometry)
 
-    # Determine which particle the user selected
-    if arg.particle == 11:
-        fileoutBase = "electrons"
-        outTag      = outTag+"electrons"
-        p           = math.pow((math.pow(arg.energy,2) - math.pow(0.000510999,2)),0.5)
-    elif arg.particle == 13:
-        fileoutBase = "muons"
-        outTag      = outTag+"muons"
-        p           = math.pow((math.pow(arg.energy,2) - math.pow(0.10565837,2)),0.5) 
-    elif arg.particle == 12:
-        fileoutBase = "neutrinos"
-        outTag      = outTag+"neutrinos"
-        p           = arg.energy
-    elif arg.particle == 2112:
-        fileoutBase = "neutrons"
-        outTag      = outTag+"neutrons"
-        p           = math.pow((math.pow(arg.energy,2) - math.pow(0.9395654,2)),0.5) 
-    elif arg.particle == 22:
-        fileoutBase = "photons"
-        outTag      = outTag+"photons"
-        p           = arg.energy
-    else:
-        print "\nInvalid particle selected.\n"
-        print "Usage can include:\n"
-        print "11   for electron"
-        print "12   for neutrino"
-        print "13   for muon"
-        print "2112 for neutron"
-        print "22   for photon\n"
-        quit()
-    
-    px = p*math.sin(math.radians(arg.theta))*math.cos(math.radians(arg.phi))
-    py = p*math.sin(math.radians(arg.theta))*math.sin(math.radians(arg.phi))
-    pz = p*math.cos(math.radians(arg.theta))
+#if arg.doPileup >= 0 and arg.particle != 0:
+#    outTag = "%d_%gGeV_%s_electrons"%(arg.numEvents,beamEnergy,arg.geometry)
+#
+#    # Determine which particle the user selected, NOT USED FOR NOW!!
+#    if arg.particle == 11:
+#        fileoutBase = "electrons"
+#        outTag      = outTag+"electrons"
+#        p           = math.pow((math.pow(beamEnergy,2) - math.pow(0.000510999,2)),0.5)
+#    elif arg.particle == 13:
+#        fileoutBase = "muons"
+#        outTag      = outTag+"muons"
+#        p           = math.pow((math.pow(beamEnergy,2) - math.pow(0.10565837,2)),0.5) 
+#    elif arg.particle == 12:
+#        fileoutBase = "neutrinos"
+#        outTag      = outTag+"neutrinos"
+#        p           = beamEnergy
+#    elif arg.particle == 2112:
+#        fileoutBase = "neutrons"
+#        outTag      = outTag+"neutrons"
+#        p           = math.pow((math.pow(beamEnergy,2) - math.pow(0.9395654,2)),0.5) 
+#    elif arg.particle == 22:
+#        fileoutBase = "photons"
+#        outTag      = outTag+"photons"
+#        p           = beamEnergy
+#    else:
+#        print "\nInvalid particle selected.\n"
+#        print "Usage can include:\n"
+#        print "11   for electron"
+#        print "12   for neutrino"
+#        print "13   for muon"
+#        print "2112 for neutron"
+#        print "22   for photon\n"
+#        quit()
+#    
+#    px = p*math.sin(math.radians(4.5))*math.cos(math.radians(0))
+#    py = p*math.sin(math.radians(4.5))*math.sin(math.radians(0))
+#    pz = p*math.cos(math.radians(4.5))
   
 # Write .sh script to be run by Condor 
 scriptFile = open("%s/runJob_%s.sh"%(workingDir,myTime), "w")
@@ -165,9 +165,9 @@ if arg.lheDir != "/default/":
                 g4Macro.write("\n/ldmx/generators/mpgun/enablePoisson\n")
 
             g4Macro.write("/ldmx/generators/mpgun/nInteractions %s\n"%(arg.doPileup+1))
-            g4Macro.write("/ldmx/generators/mpgun/pdgID %s\n"%(arg.particle))
-            g4Macro.write("/ldmx/generators/mpgun/vertex %g %g %g mm\n"%(arg.vertex[0],arg.vertex[1],arg.vertex[2]))
-            g4Macro.write("/ldmx/generators/mpgun/momentum %g %g %g GeV\n"%(px,py,pz))
+            g4Macro.write("/ldmx/generators/mpgun/pdgID 11\n")
+            g4Macro.write("/ldmx/generators/mpgun/vertex -27.9260 5 -700 mm\n")
+            g4Macro.write("/ldmx/generators/mpgun/momentum 0.31384 0 3.98766 GeV\n")
 
             if arg.smearBeam:
                 g4Macro.write("\n/ldmx/generators/beamspot/enable\n")
@@ -200,9 +200,9 @@ else:
             g4Macro.write("/ldmx/generators/mpgun/enablePoisson\n")
 
         g4Macro.write("/ldmx/generators/mpgun/nInteractions %s\n"%(arg.doPileup+1))
-        g4Macro.write("/ldmx/generators/mpgun/pdgID %s\n"%(arg.particle))
-        g4Macro.write("/ldmx/generators/mpgun/vertex %g %g %g mm\n"%(arg.vertex[0],arg.vertex[1],arg.vertex[2]))
-        g4Macro.write("/ldmx/generators/mpgun/momentum %g %g %g GeV\n"%(px,py,pz))
+        g4Macro.write("/ldmx/generators/mpgun/pdgID 11\n")
+        g4Macro.write("/ldmx/generators/mpgun/vertex -27.9260 5 -700 mm\n")
+        g4Macro.write("/ldmx/generators/mpgun/momentum 0.31384 0 3.98766 GeV\n")
 
         # Beam spot dimensions are in mm
         if arg.smearBeam:

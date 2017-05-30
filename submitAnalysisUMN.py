@@ -22,7 +22,6 @@ parser.add_argument("--numFiles"  , dest="numFiles"    , help="number of files t
 parser.add_argument("--outputDir" , dest="outputDir"   , help="directory to output ROOT files", required=True)
 parser.add_argument("--perJob"    , dest="perJob"      , help="files per job"                 , default=1, type=int)
 parser.add_argument("--startLayer", dest="startLayer"  , help="first layer of layer sum"      , default=1, type=int)
-parser.add_argument("--switch"    , dest="switch"      , help="switch analysis modes"         , default=1, type=int)
 parser.add_argument("--threshold" , dest="threshold"   , help="layer energy sum cut"          , default=24) # Units of sim-MeV
 arg = parser.parse_args()
 
@@ -64,35 +63,19 @@ if not os.path.exists("./temp"): os.mkdir("temp")
 
 workingDir = os.path.dirname(sys.argv[0])
 
-if (arg.switch != 1):
-    # Write .sh file to be submitted to Condor
-    scriptFile = open("%s/runAnalysisJob_%s.sh"%(workingDir,myTime), "w")
-    scriptFile.write("#!/bin/bash\n\n")
-    scriptFile.write("hostname\n")
-    scriptFile.write("OUTFILE=$1\n")
-    scriptFile.write("shift\n")
-    scriptFile.write("INFILES=$@\n")
-    scriptFile.write("LDMXBASE=\"%s\"\n"%(ldmxBase))
-    scriptFile.write("source ${LDMXBASE}/ldmx-sw_setup.sh\n")
-    scriptFile.write("source ${LDMXBASE}/ldmx-sw/ldmx-sw-install/bin/ldmx-setup-env.sh\n")
-    scriptFile.write("./ldmx-analyze-digi ${OUTFILE} ${INFILES}\n")
-    scriptFile.close()
-    
-else:
-    # Write .sh file to be submitted to Condor
-    scriptFile = open("%s/runAnalysisJob_%s.sh"%(workingDir,myTime), "w")
-    scriptFile.write("#!/bin/bash\n\n")
-    scriptFile.write("hostname\n")
-    scriptFile.write("OUTPUTDIR=$1\n")
-    scriptFile.write("shift\n")
-    scriptFile.write("JOBNUM=$1\n")
-    scriptFile.write("shift\n")
-    scriptFile.write("INFILES=$@\n")
-    scriptFile.write("LDMXBASE=\"%s\"\n"%(ldmxBase))
-    scriptFile.write("source ${LDMXBASE}/ldmx-sw_setup.sh\n")
-    scriptFile.write("source ${LDMXBASE}/ldmx-sw/ldmx-sw-install/bin/ldmx-setup-env.sh\n")
-    scriptFile.write("./ldmx-app ${LDMXBASE}/ldmx-sw/ldmx-sw-install/my_standalone.py %s %s %s %s ${OUTPUTDIR} ${JOBNUM} ${INFILES}\n"%(arg.threshold,arg.startLayer,arg.endLayer,arg.mode))
-    scriptFile.close()
+# Write .sh file to be submitted to Condor
+scriptFile = open("%s/runAnalysisJob_%s.sh"%(workingDir,myTime), "w")
+scriptFile.write("#!/bin/bash\n\n")
+scriptFile.write("hostname\n")
+scriptFile.write("OUTPUTDIR=$1\n")
+scriptFile.write("shift\n")
+scriptFile.write("JOBNUM=$1\n")
+scriptFile.write("shift\n")
+scriptFile.write("INFILES=$@\n")
+scriptFile.write("LDMXBASE=\"%s\"\n"%(ldmxBase))
+scriptFile.write("source ${LDMXBASE}/ldmx-sw_setup.sh\n")
+scriptFile.write("./ldmx-app ${LDMXBASE}/ldmx-sw/ldmx-sw-install/my_standalone.py %s %s %s %s ${OUTPUTDIR} ${JOBNUM} ${INFILES}\n"%(arg.threshold,arg.startLayer,arg.endLayer,arg.mode))
+scriptFile.close()
     
 # Write Condor submit file
 condorSubmit = open("%s/condorSubmit_%s"%(workingDir,myTime), "w")
@@ -122,9 +105,6 @@ for file in inFileList:
             condorSubmit.write("output = %s/logs/%s.out\n"%(workingDir,jobNum))
             condorSubmit.write("Log    = %s/logs/%s.log\n"%(workingDir,jobNum))
 
-        if (arg.switch != 1):
-            condorSubmit.write("Arguments = %s %s\n"%(outputDir+"/"+"pass_"+file, inFileStr))
-            condorSubmit.write("Queue\n")
         else:
             condorSubmit.write("Arguments = %s %s %s\n"%(outputDir+"/", jobNum, inFileStr))
             condorSubmit.write("Queue\n")
@@ -139,5 +119,6 @@ os.system("chmod u+rwx %s/runAnalysisJob_%s.sh"%(workingDir,myTime))
 
 if arg.noSubmit:
     quit()
+
 command = "condor_submit " + condorSubmit.name + "\n"
 subprocess.call(command.split())

@@ -1,6 +1,6 @@
 #!bin/bash
 
-LDMXBASE="/home/hiltbran/Projects/LDMX/ldmx-sw"
+LDMXBASE="/$HOME/Projects/LDMX/"
 ROOTDIR="/local/cms/other/root"
 G4DIR="/local/cms/other/geant4"
 CVMFSDIR="/cvmfs/cms.cern.ch/slc6_amd64_gcc493/external"
@@ -17,8 +17,8 @@ source /local/cms/other/geant4/geant4.10.02.p02/setup.sh
 
 export G4ENSDFSTATEDATA=${G4DIR}/geant4.10.02.p02/share/Geant4-10.2.2/data/G4ENSDFSTATE1.2.3
 
-export LD_LIBRARY_PATH=${LDMXBASE}/ldmx-sw-install/lib:${ROOTDIR}/6.06.08/lib:${G4DIR}/geant4.10.02.p02/lib64:${CVMFSDIR}/xerces-c/3.1.3/lib:${CVMFSDIR}/gcc/4.9.3/lib:${CVMFSDIR}/gcc/4.9.3/lib64:${LD_LIBRARY_PATH}
+export LD_LIBRARY_PATH=${LDMXBASE}/ldmx-sw/ldmx-sw-install/lib:${ROOTDIR}/6.06.08/lib:${G4DIR}/geant4.10.02.p02/lib64:${CVMFSDIR}/xerces-c/3.1.3/lib:${CVMFSDIR}/gcc/4.9.3/lib:${CVMFSDIR}/gcc/4.9.3/lib64:${LD_LIBRARY_PATH}
 
-export PYTHONPATH=${LDMXBASE}/ldmx-sw-install/lib/python:$PYTHONPATH
+export PYTHONPATH=${LDMXBASE}/ldmx-sw/ldmx-sw-install/lib/python:$PYTHONPATH
 
-export PATH=${LDMXBASE}/ldmx-sw-install/bin:$PATH
+export PATH=${LDMXBASE}/ldmx-sw/ldmx-sw-install/bin:$PATH

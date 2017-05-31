@@ -27,7 +27,6 @@ parser.add_argument("--smearBeam" , dest="smearBeam" , help="smear the beamspot"
 arg = parser.parse_args()
 
 outputDir = arg.outputDir
-ldmxBase = "/home/hiltbran/Projects/LDMX"
 workingDir = os.path.dirname(sys.argv[0])
 
 beamEnergy = 4.0 # In GeV
@@ -125,13 +124,12 @@ else:
     scriptFile.write("UNIQUEDIR=${NAME}_${JOB}_%s\n"%(myTime))
     scriptFile.write("OUTFILENAME=%s_${JOB}_%s\n"%(outTag, myTime))
 
-scriptFile.write("LDMXDIR=\"%s\"\n"%(ldmxBase))
 scriptFile.write("hostname\n")
-scriptFile.write("source ${LDMXDIR}/ldmx-sw_setup.sh\n")
+scriptFile.write("source ${HOME}/bin/ldmx-sw_setup.sh\n")
 scriptFile.write("cd temp && mkdir ${UNIQUEDIR} && cd ${UNIQUEDIR}\n")
-scriptFile.write("ln -s ${LDMXDIR}/ldmx-sw/BmapCorrected3D_13k_unfolded_scaled_1.15384615385.dat .\n")
-scriptFile.write("ln -s ${LDMXDIR}/ldmx-sw/Detectors/data/ldmx-det-full-%s-fieldmap/* .\n"%(arg.geometry))
-scriptFile.write("ln -s ${LDMXDIR}/ldmx-sw/ldmx-sw-install/bin/ldmx-sim .\n")
+scriptFile.write("ln -s ${LDMXBASE}/ldmx-sw/BmapCorrected3D_13k_unfolded_scaled_1.15384615385.dat .\n")
+scriptFile.write("ln -s ${LDMXBASE}/ldmx-sw/Detectors/data/ldmx-det-full-%s-fieldmap/* .\n"%(arg.geometry))
+scriptFile.write("ln -s ${LDMXBASE}/ldmx-sw/ldmx-sw-install/bin/ldmx-sim .\n")
 scriptFile.write("mv %s/../../ldmxsteer_${UNIQUEDIR}.mac ldmxsteer.mac\n"%(workingDir))
 scriptFile.write("./ldmx-sim ldmxsteer.mac\n")
 scriptFile.write("cp ldmx_sim_events.root %s/${OUTFILENAME}.root && cd .. && rm -r ${UNIQUEDIR}\n"%(outputDir))

@@ -1,6 +1,6 @@
 #!bin/bash
 
-LDMXBASE="/$HOME/Projects/LDMX/"
+LDMXBASE="${HOME}/Projects/LDMX/"
 ROOTDIR="/local/cms/other/root"
 G4DIR="/local/cms/other/geant4"
 CVMFSDIR="/cvmfs/cms.cern.ch/slc6_amd64_gcc493/external"

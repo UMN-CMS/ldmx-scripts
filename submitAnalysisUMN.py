@@ -35,7 +35,6 @@ if arg.numFiles == -1:
     numFiles = len(inFileList)
 else:
     numFiles = arg.numFiles
-ldmxBase = "/home/hiltbran/Projects/LDMX" 
 
 # Check that the input and output directories exist
 if not os.path.exists(inputDir):
@@ -72,9 +71,8 @@ scriptFile.write("shift\n")
 scriptFile.write("JOBNUM=$1\n")
 scriptFile.write("shift\n")
 scriptFile.write("INFILES=$@\n")
-scriptFile.write("LDMXBASE=\"%s\"\n"%(ldmxBase))
-scriptFile.write("source ${LDMXBASE}/ldmx-sw_setup.sh\n")
-scriptFile.write("./ldmx-app ${LDMXBASE}/ldmx-sw/ldmx-sw-install/my_standalone.py %s %s %s %s ${OUTPUTDIR} ${JOBNUM} ${INFILES}\n"%(arg.threshold,arg.startLayer,arg.endLayer,arg.mode))
+scriptFile.write("source ${HOME}/bin/ldmx-sw_setup.sh\n")
+scriptFile.write("ldmx-app ${LDMXBASE}/ldmx-sw/ldmx-sw-install/my_standalone.py %s %s %s %s ${OUTPUTDIR} ${JOBNUM} ${INFILES}\n"%(arg.threshold,arg.startLayer,arg.endLayer,arg.mode))
 scriptFile.close()
     
 # Write Condor submit file
@@ -105,9 +103,8 @@ for file in inFileList:
             condorSubmit.write("output = %s/logs/%s.out\n"%(workingDir,jobNum))
             condorSubmit.write("Log    = %s/logs/%s.log\n"%(workingDir,jobNum))
 
-        else:
-            condorSubmit.write("Arguments = %s %s %s\n"%(outputDir+"/", jobNum, inFileStr))
-            condorSubmit.write("Queue\n")
+        condorSubmit.write("Arguments = %s %s %s\n"%(outputDir+"/", jobNum, inFileStr))
+        condorSubmit.write("Queue\n")
 
         jobNum += 1
         iterator = 0

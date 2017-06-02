@@ -129,9 +129,8 @@ scriptFile.write("source ${HOME}/bin/ldmx-sw_setup.sh\n")
 scriptFile.write("cd temp && mkdir ${UNIQUEDIR} && cd ${UNIQUEDIR}\n")
 scriptFile.write("ln -s ${LDMXBASE}/ldmx-sw/BmapCorrected3D_13k_unfolded_scaled_1.15384615385.dat .\n")
 scriptFile.write("ln -s ${LDMXBASE}/ldmx-sw/Detectors/data/ldmx-det-full-%s-fieldmap/* .\n"%(arg.geometry))
-scriptFile.write("ln -s ${LDMXBASE}/ldmx-sw/ldmx-sw-install/bin/ldmx-sim .\n")
-scriptFile.write("mv %s/../../ldmxsteer_${UNIQUEDIR}.mac ldmxsteer.mac\n"%(workingDir))
-scriptFile.write("./ldmx-sim ldmxsteer.mac\n")
+scriptFile.write("mv ../../ldmxsteer_${UNIQUEDIR}.mac ldmxsteer.mac\n")
+scriptFile.write("ldmx-sim ldmxsteer.mac\n")
 scriptFile.write("cp ldmx_sim_events.root %s/${OUTFILENAME}.root && cd .. && rm -r ${UNIQUEDIR}\n"%(outputDir))
 scriptFile.write("cd ../..\n")
 scriptFile.close()
@@ -146,8 +145,12 @@ condorSubmit.write("getenv              =  True\n")
 condorSubmit.write("Request_Memory      =  1 Gb\n")
 
 if arg.lheDir != "/default/":
-    for file in os.listdir(lheDir):
+    for file in os.listdir(arg.lheDir):
         filename = file.split(".lhe")[0]
+    	if not arg.noLogging:
+	    condorSubmit.write("error=%s/logs/%s.err\n"%(workingDir,filename))
+	    condorSubmit.write("output=%s/logs/%s.out\n"%(workingDir,filename))
+	    condorSubmit.write("Log=%s/logs/%s.log\n"%(workingDir,filename))
 
         condorSubmit.write("Arguments       = %s\n"%(filename))
         condorSubmit.write("Queue\n")
@@ -155,7 +158,7 @@ if arg.lheDir != "/default/":
         g4Macro = open("%s/ldmxsteer_%s_%s.mac"%(workingDir,filename,myTime),"w")
         g4Macro.write("/persistency/gdml/read detector.gdml\n")
         g4Macro.write("/run/initialize\n")
-        g4Macro.write("\n/ldmx/generators/lhe/open %s/%s\n"%(lheDir,file))
+        g4Macro.write("\n/ldmx/generators/lhe/open %s/%s\n"%(arg.lheDir,file))
 
         if arg.doPileup > 0:
             g4Macro.write("\n/ldmx/generators/mpgun/enable\n")

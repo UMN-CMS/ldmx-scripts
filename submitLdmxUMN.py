@@ -172,8 +172,8 @@ if arg.lheDir != "/default/":
 
             if arg.smearBeam:
                 g4Macro.write("\n/ldmx/generators/beamspot/enable\n")
-                g4Macro.write("/ldmx/generators/beamspot/sizeX 20.0\n")
-                g4Macro.write("/ldmx/generators/beamspot/sizeY 10.0\n")
+                g4Macro.write("/ldmx/generators/beamspot/sizeX 15.0\n")
+                g4Macro.write("/ldmx/generators/beamspot/sizeY 35.0\n")
 
         g4Macro.write("\n/random/setSeeds %d %d\n"%(random.uniform(0,100000000),random.uniform(0,100000000)))
         g4Macro.write("/run/beamOn %d\n"%(arg.numEvents))
@@ -208,8 +208,8 @@ else:
         # Beam spot dimensions are in mm
         if arg.smearBeam:
             g4Macro.write("\n/ldmx/generators/beamspot/enable\n")
-            g4Macro.write("/ldmx/generators/beamspot/sizeX 20.0\n")
-            g4Macro.write("/ldmx/generators/beamspot/sizeY 10.0\n")
+            g4Macro.write("/ldmx/generators/beamspot/sizeX 15.0\n")
+            g4Macro.write("/ldmx/generators/beamspot/sizeY 35.0\n")
 
         g4Macro.write("\n/random/setSeeds %d %d\n"%(random.uniform(0,100000000),random.uniform(0,100000000)))
         g4Macro.write("/run/beamOn %d\n"%(arg.numEvents))

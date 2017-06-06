@@ -53,6 +53,7 @@ if not os.path.exists(outputDir):
     print "Exiting..."
     quit()
 
+
 # Check for trailing slash on outputDir and delete
 if arg.outputDir.split("/")[-1] == "": outputDir = arg.outputDir[:-1]
 
@@ -71,6 +72,10 @@ if arg.lheDir != "/default/":
     if arg.lheDir.split("/")[-1] == "": lheDir = arg.lheDir[:-1]
 
 outTag = "%d_%gGeV_%s_electrons"%(arg.numEvents,beamEnergy,arg.geometry)
+
+if not arg.noLogging:
+# Check for existence of logs directory and create one if none is found
+	if not os.path.exists("%s/logs"%(workingDir)): os.mkdir("%s/logs"%(workingDir))
 
 #if arg.doPileup >= 0 and arg.particle != 0:
 #    outTag = "%d_%gGeV_%s_electrons"%(arg.numEvents,beamEnergy,arg.geometry)
@@ -126,12 +131,12 @@ else:
 
 scriptFile.write("hostname\n")
 scriptFile.write("source ${HOME}/bin/ldmx-sw_setup.sh\n")
-scriptFile.write("cd temp && mkdir ${UNIQUEDIR} && cd ${UNIQUEDIR}\n")
+scriptFile.write("cd %s/temp && mkdir ${UNIQUEDIR} && cd ${UNIQUEDIR}\n"%(workingDir))
 scriptFile.write("ln -s ${LDMXBASE}/ldmx-sw/BmapCorrected3D_13k_unfolded_scaled_1.15384615385.dat .\n")
 scriptFile.write("ln -s ${LDMXBASE}/ldmx-sw/Detectors/data/ldmx-det-full-%s-fieldmap/* .\n"%(arg.geometry))
 scriptFile.write("mv ../../ldmxsteer_${UNIQUEDIR}.mac ldmxsteer.mac\n")
 scriptFile.write("ldmx-sim ldmxsteer.mac\n")
-scriptFile.write("cp ldmx_sim_events.root %s/${OUTFILENAME}.root && cd .. && rm -r ${UNIQUEDIR}\n"%(outputDir))
+scriptFile.write("cp ldmx_sim_events.root %s/${OUTFILENAME}.root && cd .. &&  rm -r ${UNIQUEDIR}\n"%(outputDir))
 scriptFile.write("cd ../..\n")
 scriptFile.close()
 

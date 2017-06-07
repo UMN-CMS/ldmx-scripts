@@ -9,6 +9,7 @@ import subprocess
 from time import strftime
 
 myTime = strftime("%H%M%S")
+date_and_time=strftime("%Y_%b_%d_%H%M%S")
 random.seed()
 
 usage = "usage: %prog [options]"
@@ -21,13 +22,16 @@ parser.add_argument("--noLogging" , dest="noLogging" , help="disable logging cap
 parser.add_argument("--noSubmit"  , dest="noSubmit"  , help="do not submit to cluster", default=False, action="store_true")
 parser.add_argument("--numEvents" , dest="numEvents" , help="number of events per job"      , default=100, type=int)
 parser.add_argument("--numJobs"   , dest="numJobs"   , help="number of jobs to run"         , default=1, type=int)
-parser.add_argument("--outputDir" , dest="outputDir" , help="output directory for root files", required=True)
+parser.add_argument("--outputDir" , dest="outputDir" , help="output directory for root files", default="/local/cms/user/%s/LDMX"%(os.environ['USER']))
+parser.add_argument("--jobname", dest="jobname", help="job name to be used for directories and root files", required=True)
 parser.add_argument("--particle"  , dest="particle"  , help="choose beam particle via pdgID (not pileup!)", default=0, type=int)
 parser.add_argument("--smearBeam" , dest="smearBeam" , help="smear the beamspot", default=False, action="store_true")
 arg = parser.parse_args()
 
-outputDir = arg.outputDir
-workingDir = os.path.dirname(sys.argv[0])
+outputDir = arg.outputDir+"/"+arg.jobname
+workingDir = "/export/scratch/users/%s"%(os.environ['USER'])
+
+print os.path.expanduser("LDMX")
 
 beamEnergy = 4.0 # In GeV
 
@@ -48,17 +52,14 @@ if arg.doPileup < 0:
     quit()
 
 # Check that the output directory exist
+os.makedirs(outputDir)
 if not os.path.exists(outputDir):
-    print "\nProvided output directory \"%s\" does not exist!"%(outputDir)
+    print "\nUnable to create output directory \"%s\""%(outputDir)
     print "Exiting..."
     quit()
 
-
 # Check for trailing slash on outputDir and delete
 if arg.outputDir.split("/")[-1] == "": outputDir = arg.outputDir[:-1]
-
-# Check for existence of temp directory and create one if none is found
-if not os.path.exists("%s/temp"%(workingDir)): os.mkdir("%s/temp"%(workingDir))
 
 if arg.lheDir != "/default/":
 
@@ -115,52 +116,55 @@ if not arg.noLogging:
 #    py = p*math.sin(math.radians(4.5))*math.sin(math.radians(0))
 #    pz = p*math.cos(math.radians(4.5))
   
-# Write .sh script to be run by Condor 
-scriptFile = open("%s/runJob_%s.sh"%(workingDir,myTime), "w")
-scriptFile.write("#!/bin/bash\n\n")
-if arg.lheDir != "/default/":
-    scriptFile.write("NAME=$1\n")
-    scriptFile.write("UNIQUEDIR=${NAME}_%s\n"%(myTime))
-    scriptFile.write("OUTFILENAME=${NAME}\n")
-   
-else:
-    scriptFile.write("JOB=$1\n")
-    scriptFile.write("NAME=$2\n")
-    scriptFile.write("UNIQUEDIR=${NAME}_${JOB}_%s\n"%(myTime))
-    scriptFile.write("OUTFILENAME=%s_${JOB}_%s\n"%(outTag, myTime))
+# Write .sh script to be run by Condor
+condorDir="%s/condor"%(outputDir)
+os.makedirs(condorDir) # make the script and condor directory
 
-scriptFile.write("hostname\n")
-scriptFile.write("source ${HOME}/bin/ldmx-sw_setup.sh\n")
-scriptFile.write("cd %s/temp && mkdir ${UNIQUEDIR} && cd ${UNIQUEDIR}\n"%(workingDir))
+scriptFile = open("%s/runJob.sh"%(condorDir), "w")
+scriptFile.write("#!/bin/bash\n\n")
+scriptFile.write("STUBNAME=$1\n")
+scriptFile.write("OUTPATH=$2\n")
+
+# Create directories to save log, submit, and mac files if they don't already exist
+#if not os.path.exists("${HOME}/../../local/cms/user/${USER}/LDMX/condor_jobs/%s/condor_submits"%(date_and_time)): scriptFile.write("mkdir ${HOME}/../../local/cms/user/${USER}/LDMX/condor_jobs/%s/condor_submits\n"%(date_and_time))
+#if not os.path.exists("${HOME}/../../local/cms/user/${USER}/LDMX/condor_jobs/%s/macs"%(date_and_time)): scriptFile.write("mkdir ${HOME}/../../local/cms/user/${USER}/LDMX/condor_jobs/%s/macs\n"%(date_and_time))
+logDir="%s/logs"%(outputDir)
+os.makedirs(logDir) # make the log directory
+macDir="%s/mac"%(outputDir)
+os.makedirs(macDir) # make the mac directory
+
+scriptFileName=scriptFile.name
+scriptFile.write("mkdir -p %s;cd %s\nmkdir ${STUBNAME}\ncd ${STUBNAME}\n"%(workingDir,workingDir))
+scriptFile.write("hostname > ${STUBNAME}.log\n")
+scriptFile.write("source ${HOME}/bin/ldmx-sw_setup.sh >> ${STUBNAME}.log 2>>${STUBNAME}.err\n")
 scriptFile.write("ln -s ${LDMXBASE}/ldmx-sw/BmapCorrected3D_13k_unfolded_scaled_1.15384615385.dat .\n")
 scriptFile.write("ln -s ${LDMXBASE}/ldmx-sw/Detectors/data/ldmx-det-full-%s-fieldmap/* .\n"%(arg.geometry))
-scriptFile.write("mv ../../ldmxsteer_${UNIQUEDIR}.mac ldmxsteer.mac\n")
-scriptFile.write("ldmx-sim ldmxsteer.mac\n")
-scriptFile.write("cp ldmx_sim_events.root %s/${OUTFILENAME}.root && cd .. &&  rm -r ${UNIQUEDIR}\n"%(outputDir))
-scriptFile.write("cd ../..\n")
+scriptFile.write("ldmx-sim ${OUTPATH}/mac/${STUBNAME}.mac >> ${STUBNAME}.log 2>>${STUBNAME}.err\n")
+scriptFile.write("cp ldmx_sim_events.root ${OUTPATH}/${STUBNAME}.root >> ${STUBNAME}.log 2>>${STUBNAME}.err\n")
+scriptFile.write("xz *.log *.err\n")
+scriptFile.write("cp *.xz ${OUTPATH}/logs\n")
+scriptFile.write("#cd .. && rm -r ${STUBNAME}\n")
 scriptFile.close()
 
 # Write Condor submit file 
-condorSubmit = open("%s/condorSubmit_%s"%(workingDir,myTime), "w")
+condorSubmit = open("%s/condorSubmit"%(condorDir), "w")
 condorSubmit.write("Executable          =  %s\n"%(scriptFile.name))
 condorSubmit.write("Universe            =  vanilla\n")
-condorSubmit.write("Requirements        =  Arch==\"X86_64\"  &&  (Machine  !=  \"zebra01.spa.umn.edu\")  &&  (Machine  !=  \"zebra02.spa.umn.edu\")  &&  (Machine  !=  \"zebra03.spa.umn.edu\")  &&  (Machine  !=  \"zebra04.spa.umn.edu\")\n")
+condorSubmit.write("Requirements        =  Arch==\"X86_64\"  &&  (Machine  !=  \"scorpion6.spa.umn.edu\")  &&  (Machine  !=  \"zebra02.spa.umn.edu\")  &&  (Machine  !=  \"zebra03.spa.umn.edu\")  &&  (Machine  !=  \"zebra04.spa.umn.edu\")\n")
 condorSubmit.write("+CondorGroup        =  \"cmsfarm\"\n")
 condorSubmit.write("getenv              =  True\n")
 condorSubmit.write("Request_Memory      =  1 Gb\n")
 
+ijob=0
 if arg.lheDir != "/default/":
     for file in os.listdir(arg.lheDir):
+    	stubname="%s_%04d"%(arg.jobname,ijob)
         filename = file.split(".lhe")[0]
-    	if not arg.noLogging:
-	    condorSubmit.write("error=%s/logs/%s.err\n"%(workingDir,filename))
-	    condorSubmit.write("output=%s/logs/%s.out\n"%(workingDir,filename))
-	    condorSubmit.write("Log=%s/logs/%s.log\n"%(workingDir,filename))
 
-        condorSubmit.write("Arguments       = %s\n"%(filename))
+        condorSubmit.write("Arguments       = %s %s\n"%(stubname,outputDir))
         condorSubmit.write("Queue\n")
 
-        g4Macro = open("%s/ldmxsteer_%s_%s.mac"%(workingDir,filename,myTime),"w")
+        g4Macro = open("%s/%s.mac"%(macDir,stubname),"w")
         g4Macro.write("/persistency/gdml/read detector.gdml\n")
         g4Macro.write("/run/initialize\n")
         g4Macro.write("\n/ldmx/generators/lhe/open %s/%s\n"%(arg.lheDir,file))
@@ -183,21 +187,17 @@ if arg.lheDir != "/default/":
         g4Macro.write("\n/random/setSeeds %d %d\n"%(random.uniform(0,100000000),random.uniform(0,100000000)))
         g4Macro.write("/run/beamOn %d\n"%(arg.numEvents))
         g4Macro.close()
+	ijob=ijob+1
     
 else:
     for job in xrange(0, arg.numJobs):
+        stubname="%s_%04d"%(arg.jobname,job)
     
-        # Append jobs to Condor submit file 
-        if not arg.noLogging:
-            condorSubmit.write("error               =  %s/logs/%s.err\n"%(workingDir,job))
-            condorSubmit.write("output              =  %s/logs/%s.out\n"%(workingDir,job))
-            condorSubmit.write("Log                 =  %s/logs/%s.log\n"%(workingDir,job))
-    
-        condorSubmit.write("Arguments       = %d %s\n"%(job,outTag))
+        condorSubmit.write("Arguments       = %d %s\n"%(stubname,outputDir))
         condorSubmit.write("Queue\n")
     
         # Write GEANT4 macro for each job
-        g4Macro = open("%s/ldmxsteer_%s_%d_%s.mac"%(workingDir,outTag,job,myTime), "w")
+        g4Macro = open("%s/%s.mac"%(macDir,stubname), "w")
         g4Macro.write("/persistency/gdml/read detector.gdml\n")
         g4Macro.write("/run/initialize\n") 
         g4Macro.write("\n/ldmx/generators/mpgun/enable\n")
@@ -222,7 +222,7 @@ else:
 
 condorSubmit.close()
 
-os.system("chmod u+rwx %s/runJob_%s.sh"%(workingDir,myTime))
+os.system("chmod u+rwx %s"%(scriptFileName))
 
 if arg.noSubmit:
     quit()

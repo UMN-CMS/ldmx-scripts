@@ -16,7 +16,7 @@ usage = "usage: %prog [options]"
 parser = argparse.ArgumentParser(usage)
 parser.add_argument("--doPileup"  , dest="doPileup"  , help="Inject n additional particles into event", default=0, type=int)
 parser.add_argument("--enablePoisson" , dest="enablePoisson" , help="Poisson distribute number of e per event", default=False, action="store_true")
-parser.add_argument("--geometry"  , dest="geometry"  , help="specify geometry version to use", default="v0", type=str)
+parser.add_argument("--geometry"  , dest="geometry"  , help="specify geometry version to use", default="v2", type=str)
 parser.add_argument("--lheDir"    , dest="lheDir"    , help="directory containing .lhe files", default="/default/")
 parser.add_argument("--noLogging" , dest="noLogging" , help="disable logging capabilities", default=False, action="store_true")
 parser.add_argument("--noSubmit"  , dest="noSubmit"  , help="do not submit to cluster", default=False, action="store_true")
@@ -30,8 +30,6 @@ arg = parser.parse_args()
 
 outputDir = arg.outputDir+"/"+arg.jobname
 workingDir = "/export/scratch/users/%s"%(os.environ['USER'])
-
-print os.path.expanduser("LDMX")
 
 beamEnergy = 4.0 # In GeV
 
@@ -155,7 +153,7 @@ condorSubmit.write("+CondorGroup        =  \"cmsfarm\"\n")
 condorSubmit.write("getenv              =  True\n")
 condorSubmit.write("Request_Memory      =  1 Gb\n")
 
-ijob=0
+ijob=1
 if arg.lheDir != "/default/":
     for file in os.listdir(arg.lheDir):
     	stubname="%s_%04d"%(arg.jobname,ijob)
@@ -193,7 +191,7 @@ else:
     for job in xrange(0, arg.numJobs):
         stubname="%s_%04d"%(arg.jobname,job)
     
-        condorSubmit.write("Arguments       = %d %s\n"%(stubname,outputDir))
+        condorSubmit.write("Arguments       = %s %s\n"%(stubname,outputDir))
         condorSubmit.write("Queue\n")
     
         # Write GEANT4 macro for each job

@@ -9,7 +9,7 @@
 export LDMX_ENV_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
 
 # This is the full path to the directory containing ldmx-sw
-export LDMXBASE="/local/cms/user/$USER/ldmx"
+export LDMXBASE="$( cd "${LDMX_ENV_DIR}/../" &>/dev/null && pwd)"
 
 # installation prefix for ldmx-sw
 export LDMX_INSTALL_PREFIX="$LDMXBASE/ldmx-sw/install"

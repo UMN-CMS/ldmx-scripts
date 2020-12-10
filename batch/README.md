@@ -17,7 +17,9 @@ Input | Description
 `input_file` | If an input file for the run is given, this argument is set to the name of the input file after it is copied over to the working directory.
 `run_number` | Passed as the run number from the `ldmx_write_jobs.py`. Look there if you wish to control how these run numbers are generated.
 
-You can feel free to add other arguments here as well, but since these three arguments need to interact with the other parts of the batch machinery, they are _required_.
+You can feel free to add other arguments here as well, but since these arguments need to interact with the other parts of the batch machinery, they are _required_.
+
+The batch machinery does *nothing* to determine what the name of the output file is. *You are responsible for making sure the output files from your batch jobs do not conflict.* A good habit is to have the `run_number` argument be used in the output file name so that you know that the output files are unique across the different numbered jobs.
 
 ## Write Job List
 

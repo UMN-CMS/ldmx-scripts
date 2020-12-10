@@ -5,6 +5,9 @@
 #   the ldmx environment easier
 #   alias ldmxenv='source <path-to-this-file>/ldmx-env.sh'
 
+# get the directory of this script
+export LDMX_ENV_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
+
 # This is the full path to the directory containing ldmx-sw
 export LDMXBASE="/local/cms/user/$USER/ldmx"
 
@@ -25,8 +28,8 @@ function ldmxana-cmake {
   (set -x; cmake -DBOOST_ROOT=$BOOSTDIR -DLDMXSW_INSTALL_PREFIX=$LDMX_INSTALL_PREFIX "$@" ../;)
 }
 
-# prepends ldmx-app with valgrind to check for memory leaks
-alias ldmx-val='valgrind --tool=memcheck --leak-check=yes --suppressions=$ROOTSYS/etc/root/valgrind-root.supp --log-file=memcheck.log ldmx-app'
+# prepends fire with valgrind to check for memory leaks
+alias ldmx-val='valgrind --tool=memcheck --leak-check=yes --suppressions=$ROOTSYS/etc/root/valgrind-root.supp --log-file=memcheck.log fire'
 
 # skips directories that aren't modules
 #   now run 'grepmodules <pattern>' in ldmx-sw/ to search for a <pattern> in the module source files
@@ -45,6 +48,12 @@ ldmxremake() {
   make install -j8 &&
   cd -
 }
+
+# helpful alias for making a stable installation
+alias ldmx-make-stable='bash $LDMX_ENV_DIR/batch/make_stable.sh'
+
+# helpful alias for writing batch job lists
+alias ldmx-write-jobs='python $LDMX_ENV_DIR/batch/ldmx_write_jobs.py'
 
 ### The rest is believed to be the same for all umn users
 # It is a hassle to change the gcc version because all of the other

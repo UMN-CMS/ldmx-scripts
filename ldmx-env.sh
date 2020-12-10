@@ -53,7 +53,7 @@ ldmx-remake() {
 alias ldmx-make-stable='bash $LDMX_ENV_DIR/batch/make_stable.sh'
 
 # helpful alias for writing batch job lists
-alias ldmx-write-jobs='python $LDMX_ENV_DIR/batch/ldmx_write_jobs.py'
+alias ldmx-write-jobs='python3 $LDMX_ENV_DIR/batch/ldmx_write_jobs.py'
 
 ### The rest is believed to be the same for all umn users
 # It is a hassle to change the gcc version because all of the other

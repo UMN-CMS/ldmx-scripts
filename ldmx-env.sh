@@ -6,25 +6,25 @@
 #   alias ldmxenv='source <path-to-this-file>/ldmx-env.sh'
 
 # get the directory of this script
-export LDMX_ENV_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
+export LDMX_ENV_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" &>/dev/null && pwd )"
 
 # This is the full path to the directory containing ldmx-sw
-export LDMXBASE="$( cd "${LDMX_ENV_DIR}/../" &>/dev/null && pwd)"
+export LDMX_BASE="$( cd "${LDMX_ENV_DIR}/../" &>/dev/null && pwd)"
 
 # installation prefix for ldmx-sw
-export LDMX_INSTALL_PREFIX="$LDMXBASE/ldmx-sw/install"
+export LDMX_INSTALL_PREFIX="$LDMX_BASE/ldmx-sw/install"
 
 ### Helpful Aliases and Bash Functions
-# cmake script required to be done before make to build ldmx-sw
-# WARNING: must be in $LDMXBASE/ldmx-sw/build directory when you run cmake
+# cmake command required to be done before make to build ldmx-sw
+# WARNING: must be in $LDMX_BASE/ldmx-sw/build directory when you run cmake
 #   if you run it outside of build directory and it completes, 
 #   you will need to git reset and git clean to remove
 #   the build files that are mixed with the source files
-function ldmxcmake {
+function ldmx-cmake {
   (set -x; cmake -DCMAKE_INSTALL_PREFIX=$LDMX_INSTALL_PREFIX -DBOOST_ROOT=$BOOSTDIR "$@" ../;)
 }
 
-function ldmxana-cmake {
+function ldmx-ana-cmake {
   (set -x; cmake -DBOOST_ROOT=$BOOSTDIR -DLDMXSW_INSTALL_PREFIX=$LDMX_INSTALL_PREFIX "$@" ../;)
 }
 
@@ -40,9 +40,9 @@ alias grepmodules='grep --exclude-dir=build --exclude-dir=docs --exclude-dir=ins
 #   deletes ldmx install
 #   goes to build directory, completely deletes old build, 
 #   re-executes cmake and make, returns to prior directory
-ldmxremake() {
+ldmx-remake() {
   rm -rf $LDMX_INSTALL_PREFIX &&
-  cd $LDMXBASE/ldmx-sw/build &&
+  cd $LDMX_BASE/ldmx-sw/build &&
   rm -r * &&
   ldmxcmake &&
   make install -j8 &&

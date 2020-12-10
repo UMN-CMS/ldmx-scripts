@@ -6,7 +6,7 @@
 #   alias ldmxenv='source <path-to-this-file>/ldmx-env-umn.sh'
 
 # This is the full path to the directory containing ldmx-sw
-export LDMXBASE="/home/eichl008/local-home/ldmx"
+export LDMXBASE="/local/cms/user/$USER/ldmx"
 
 # installation prefix for ldmx-sw
 export LDMX_INSTALL_PREFIX="$LDMXBASE/ldmx-sw/install"
@@ -55,7 +55,6 @@ ldmxremake() {
 # us, but I am not writing one write now.
 # You also need to touch these library directories so that they
 # appear when cmake looks for them.
-
 
 ## bash variables needed by cmake
 # /local/cms installations of geant4 and root

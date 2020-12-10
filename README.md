@@ -9,7 +9,7 @@ This has been done in the `ldmx-env.sh` bash script.
 ## Quick Start
 
 - Setup Environment: `source ldmx-env.sh`
-  - **This assumes that `ldmx-sw` is downloaded into `/local/cms/user/<your-username>/ldmx/ldmx-sw`.**
+  - **This assumes that `ldmx-sw` is downloaded alongside this repository.**
 - Configure the Build: `cd ldmx-sw; mkdir build; cd build; ldmxcmake`
 - Make and Install: `make -j4 install`
 - Run: `fire config.py`

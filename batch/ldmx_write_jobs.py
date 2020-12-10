@@ -30,11 +30,11 @@ arg = parser.parse_args()
 jobs = 0
 if arg.input_dir is not None :
     full_input_dir = os.path.realpath(arg.input_dir)
-    inputFileList = os.listdir(arg.input_dir)
+    input_file_list = os.listdir(arg.input_dir)
     if arg.num_jobs is not None :
-        jobs = min(arg.num_jobs,len(inputFileList))
+        jobs = min(arg.num_jobs,len(input_file_list))
     else :
-        jobs = len(inputFileList)
+        jobs = len(input_file_list)
 elif arg.num_jobs is not None :
     jobs = arg.num_jobs
 else :
@@ -77,7 +77,7 @@ with open(arg.job_list,'w') as job_sub_file :
         job_sub_file.write("nice_user = True\n")
     job_sub_file.write("Request_Memory      =  1 Gb\n")
     
-    for job in range(arg.start_job,arg.start_job+arg.num_jobs) :
+    for job in range(arg.start_job,arg.start_job+jobs) :
         arguments = arguments_template.format(
                 env_script = env_script,
                 config_script = full_config_path,
@@ -85,7 +85,7 @@ with open(arg.job_list,'w') as job_sub_file :
                 )
 
         if arg.input_dir is not None :
-            arguments += ' %s'%input_file_list[job-arg.start_job]
+            arguments += ' %s/%s'%(full_input_dir,input_file_list[job-arg.start_job])
 
         arguments += ' --run_number %d %s'%(job,arg.config_args)
 

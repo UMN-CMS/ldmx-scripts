@@ -47,7 +47,7 @@ then
   cp $_input_file .
   _input_file=$(basename $_input_file)
   _to_remove="$_to_remove $_input_file"
-  _config_args="${_config_args:2} --input_file $_input_file"
+  _config_args="${_config_args#*\ } --input_file $_input_file"
 fi
 
 cp $_config_script .

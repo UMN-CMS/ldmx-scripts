@@ -41,3 +41,5 @@ It is _highly_ recommend for you to save the job list. It will help if you need 
 
 # Extra Notes
 - To prevent overloading the file system, your job should copy any input files to the worker node (probably to a scratch directory of some kind), write any output into that working directory, and then copy the output to the desired output directory.
+- You can use the command `condor_q` to see the current status of your jobs.
+- You can technically run `ldmx_write_jobs.py` from anywhere, so it is helpful to add a bash alias to your `.bashrc`: `alias ldmx-write-jobs='python /local/cms/user/$USER/ldmx/ldmx-scripts/batch/ldmx_write_jobs.py'`.

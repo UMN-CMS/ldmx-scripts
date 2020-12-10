@@ -3,7 +3,7 @@
 # SUGGESTION:
 #   Put the following command in your .bashrc file to make setting up
 #   the ldmx environment easier
-#   alias ldmxenv='source <path-to-this-file>/ldmx-env-umn.sh'
+#   alias ldmxenv='source <path-to-this-file>/ldmx-env.sh'
 
 # This is the full path to the directory containing ldmx-sw
 export LDMXBASE="/local/cms/user/$USER/ldmx"

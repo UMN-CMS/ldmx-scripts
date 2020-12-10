@@ -10,8 +10,9 @@ This has been done in the `ldmx-env.sh` bash script.
 
 - Setup Environment: `source ldmx-env.sh`
   - **This assumes that `ldmx-sw` is downloaded alongside this repository.**
-- Configure the Build: `cd ldmx-sw; mkdir build; cd build; ldmxcmake`
+- Configure the Build: `cd ldmx-sw; mkdir build; cd build; ldmx-cmake`
 - Make and Install: `make -j4 install`
 - Run: `fire config.py`
 
 For a more detailed explanation, look at the [Getting Started Guide](getting_started.md).
+

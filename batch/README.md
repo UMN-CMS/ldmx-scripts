@@ -22,11 +22,10 @@ You can feel free to add other arguments here as well, but since these three arg
 ## Write Job List
 
 Condor works by submitting a list of jobs to run. You can write a list of jobs using the python executable `ldmx_write_jobs.py`.
-Use the following to get a full explanation of the options.
-```
-ldmx-write-jobs -h
-```
-Skim through this list to double check that the arguments given to the jobs make sense. You can technically run `ldmx_write_jobs.py` from anywhere, so again a bash alias for it has been written to use it.
+You can technically run `ldmx_write_jobs.py` from anywhere, so again a bash alias for it has been written to use it.
+Use `ldmx-write-jobs -h` to get a full explanation of the options.
+
+Before starting the jobs, skim through this list to double check that the arguments given to the jobs make sense. 
 
 ## Submit the Job List
 

@@ -39,7 +39,11 @@ then
 fi
 
 _build_dir=build-$_install_name
-_install_dir=/local/cms/user/$USER/ldmx/stable-installs/$_install_name
+
+_stable_installs_dir=/local/cms/user/$USER/ldmx/stable-installs
+mkdir -p $_stable_installs_dir
+
+_install_dir=$_stable_installs_dir/$_install_name
 
 if ! mkdir $_build_dir
 then

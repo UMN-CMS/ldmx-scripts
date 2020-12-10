@@ -2,13 +2,11 @@
 This directory contains the basic files you need to submit batch jobs to UMN through the condor system.
 In order to run batch jobs, there is a series of set-up steps that are necessary.
 
-## Custom Environment Script
-If you need developments of `ldmx-sw` or `ldmx-analysis` installed to a specific location of UMN file system,
-you need to specify to the jobs which installation of ldmx-sw (and its dependencies) you want to use.
-This is done by using an "environment script".
-Example environment scripts are located at
-`/local/cms/user/eichl008/ldmx/stable-installs`
-You can also use any of the installations inside of the directory by passing the name of the installation you would like to use.
+## Build Stable Installation
+First, we need to create a "stable" installation of ldmx-sw so that the batch jobs can be running along in the background and you can keep doing other things. This directory has a bash script called `make_stable.sh` that will do this process for you. It can be run from (almost) anywhere, so it is helpful to define a bash alias for this script in your `~/.bashrc`.
+`alias ldmx-make-stable='bash /local/cms/user/$USER/ldmx/ldmx-scripts/batch/make_stable.sh'`
+
+When you get the source code at `/local/cms/user/$USER/ldmx/ldmx-sw/` to where you want it. Then simply run `ldmx-make-stable` to create a stable installation at `/local/cms/user/$USER/ldmx/stable-installs/` and you can move on to the next step.
 
 ## Config Script
 
@@ -29,7 +27,8 @@ Use the following to get a full explanation of the options.
 ```
 ./ldmx_write_jobs.py -h
 ```
-Skim through this list to double check that the arguments given to the jobs make sense.
+Skim through this list to double check that the arguments given to the jobs make sense. You can technically run `ldmx_write_jobs.py` from anywhere, so again it is helpful to add a bash alias to your `.bashrc`: 
+`alias ldmx-write-jobs='python /local/cms/user/$USER/ldmx/ldmx-scripts/batch/ldmx_write_jobs.py'`.
 
 ## Submit the Job List
 
@@ -42,4 +41,3 @@ It is _highly_ recommend for you to save the job list. It will help if you need 
 # Extra Notes
 - To prevent overloading the file system, your job should copy any input files to the worker node (probably to a scratch directory of some kind), write any output into that working directory, and then copy the output to the desired output directory.
 - You can use the command `condor_q` to see the current status of your jobs.
-- You can technically run `ldmx_write_jobs.py` from anywhere, so it is helpful to add a bash alias to your `.bashrc`: `alias ldmx-write-jobs='python /local/cms/user/$USER/ldmx/ldmx-scripts/batch/ldmx_write_jobs.py'`.

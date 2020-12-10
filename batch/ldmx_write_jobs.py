@@ -55,7 +55,7 @@ if not os.path.exists(full_config_path) :
 if arg.env_script is not None :
     env_script = os.path.realpath(arg.env_script)
 elif arg.ldmx_version is not None :
-    env_script = "/local/cms/user/eichl008/ldmx/stable-installs/%s/setup.sh"%arg.ldmx_version
+    env_script = "/local/cms/user/%s/ldmx/stable-installs/%s/setup.sh"%(os.environ['USER'],arg.ldmx_version)
 else :
     parser.error('Either a full env script \'--env_script\' or a ldmx_version \'--ldmx_version\' must be specified.')
 

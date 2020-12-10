@@ -90,7 +90,7 @@ source $G4DIR/bin/geant4.sh                                     #geant4
 export LD_LIBRARY_PATH=$LDMX_INSTALL_PREFIX/lib:$LDMX_INSTALL_PREFIX/external/onnxruntime-linux-x64-1.2.0/lib:$BOOSTDIR/lib:$PYTHONHOME/lib:$LD_LIBRARY_PATH
 
 # add ldmx python scripts to python search path
-export PYTHONPATH=$PYTHONHOME/lib/python3:$LDMX_INSTALL_PREFIX/python:$LDMXBASE/eat/install/lib/python:$PYTHONPATH
+export PYTHONPATH=$PYTHONHOME/lib/python3:$LDMX_INSTALL_PREFIX/python:$PYTHONPATH
 
 # add ldmx executables to system search path
 export PATH=$PYTHONHOME/bin:$LDMX_INSTALL_PREFIX/bin:$PATH

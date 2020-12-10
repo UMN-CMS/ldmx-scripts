@@ -23,6 +23,7 @@ parser.add_argument("--start_job",type=int,default=0,help="Starting number to us
 parser.add_argument("-t","--test",action='store_true',dest='test',help="Don't submit the job to the batch.")
 parser.add_argument("--nonice",action='store_true',dest="nonice",help="Do not run this at nice priority.")
 parser.add_argument("--run_script",type=str,help="Script to run jobs on worker nodes with.",default='%s/run_fire.sh'%os.path.dirname(os.path.realpath(__file__)))
+parser.add_argument("--tmp_root",type=str,help="Directory to create any working directories inside of.",default='/export/scratch/user/%s/'%os.environ['USER'])
 
 arg = parser.parse_args()
 
@@ -64,7 +65,7 @@ if not os.path.exists(env_script) :
 # This needs to match the correct order of the arguments in the run_fire.sh script
 #   The input file and any extra config arguments are optional and come after the
 #   three required arguments
-arguments_template = '{env_script} {config_script} {out_dir}'
+arguments_template = arg.tmp_root+'/$(Cluster)-$(Process) {env_script} {config_script} {out_dir}'
 
 # Write Condor submit file 
 with open(arg.job_list,'w') as job_sub_file :
@@ -74,7 +75,7 @@ with open(arg.job_list,'w') as job_sub_file :
     job_sub_file.write("+CondorGroup        =  \"cmsfarm\"\n")
     if not arg.nonice:
         job_sub_file.write("nice_user = True\n")
-    job_sub_file.write("Request_Memory      =  1 Gb\n")
+    job_sub_file.write("Request_Memory      =  4 Gb\n")
     
     for job in range(arg.start_job,arg.start_job+jobs) :
         arguments = arguments_template.format(
@@ -89,10 +90,12 @@ with open(arg.job_list,'w') as job_sub_file :
         arguments += ' --run_number %d %s'%(job,arg.config_args)
 
         if arg.test :
-            job_sub_file.write('output = %s/%d.out\n'%(full_out_dir_path,job))
-            job_sub_file.write('error = %s/%d.err\n'%(full_out_dir_path,job))
+            job_sub_file.write('output = %s/$(Cluster)-$(Process).out\n'%(full_out_dir_path))
+            job_sub_file.write('error = %s/$(Cluster)-$(Process).err\n'%(full_out_dir_path))
 
         job_sub_file.write('arguments = %s\n'%arguments)
+        #wait a minute between job starts, helps handle copying of large numbers of input files
+        job_sub_file.write('next_job_start_delay = 60\n') 
         job_sub_file.write('queue\n')
     #end loop over jobs
 #submit job list is open

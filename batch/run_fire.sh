@@ -8,31 +8,19 @@ set -x
 #   the results to an output directory.
 ###############################################################################
 
-_env_script=$1 #environment to use
-_config_script=$2 #script itself to run
-_output_dir=$3 #output directory to copy products to
-_input_file=$4 #optional
-_config_args=${@:4} #arguments to configuration script
+_work_dir=$1 # directory to run inside of
+_env_script=$2 #environment to use
+_config_script=$3 #script itself to run
+_output_dir=$4 #output directory to copy products to
+_input_file=$5 #optional
+_config_args=${@:5} #arguments to configuration script
 
-_scratch_area=/export/scratch/users/eichl008
-if ! mkdir -p $_scratch_area
+if ! mkdir -p $_work_dir
 then
-    echo "Can't find scratch area!"
-    exit 110
+  echo "Can't create working directory."
+  exit 110
 fi
-cd $_scratch_area
-
-# Get a unique working directory from the
-#   current date and time and PID
-# This is probably overkill, but wanted
-#   to make sure
-_unique_working_dir="$(date +%Y-%M-%d-%H-%M)-pid-$$"
-if ! mkdir -p $_unique_working_dir
-then
-  echo "Can't create a working directory in the scratch area."
-  exit 111
-fi
-cd $_unique_working_dir
+cd $_work_dir
 
 if [[ ! -z "$(ls -A .)" ]]
 then
@@ -93,6 +81,3 @@ then
   exit 117
 fi
 
-# clean up unique working dir
-cd ..
-rm -r $_unique_working_dir

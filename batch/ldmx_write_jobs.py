@@ -69,13 +69,18 @@ arguments_template = arg.tmp_root+'/$(Cluster)-$(Process) {env_script} {config_s
 
 # Write Condor submit file 
 with open(arg.job_list,'w') as job_sub_file :
-    job_sub_file.write("Executable          =  %s\n"%os.path.realpath(arg.run_script))
-    job_sub_file.write("Universe            =  vanilla\n")
-    job_sub_file.write("Requirements        =  Arch==\"X86_64\"  &&  (Machine  !=  \"zebra02.spa.umn.edu\")  &&  (Machine  !=  \"zebra03.spa.umn.edu\")  &&  (Machine  !=  \"zebra04.spa.umn.edu\")\n")
+    job_sub_file.write("executable          =  %s\n"%os.path.realpath(arg.run_script))
+    job_sub_file.write("universe            =  vanilla\n")
+    job_sub_file.write("requirements        =  Arch==\"X86_64\"\n")
+    job_sub_file.write("                       &&  (Machine  !=  \"zebra01.spa.umn.edu\")\n")
+    job_sub_file.write("                       &&  (Machine  !=  \"zebra02.spa.umn.edu\")\n")
+    job_sub_file.write("                       &&  (Machine  !=  \"zebra03.spa.umn.edu\")\n")
+    job_sub_file.write("                       &&  (Machine  !=  \"zebra04.spa.umn.edu\")\n")
+    job_sub_file.write("                       &&  (Machine  !=  \"caffeine.spa.umn.edu\")\n")
     job_sub_file.write("+CondorGroup        =  \"cmsfarm\"\n")
     if not arg.nonice:
-        job_sub_file.write("nice_user = True\n")
-    job_sub_file.write("Request_Memory      =  4 Gb\n")
+        job_sub_file.write("nice_user           = True\n")
+    job_sub_file.write("request_memory      =  4 Gb\n")
     
     for job in range(arg.start_job,arg.start_job+jobs) :
         arguments = arguments_template.format(
@@ -94,7 +99,7 @@ with open(arg.job_list,'w') as job_sub_file :
             job_sub_file.write('error = %s/$(Cluster)-$(Process).err\n'%(full_out_dir_path))
 
         job_sub_file.write('arguments = %s\n'%arguments)
-        #wait a minute between job starts, helps handle copying of large numbers of input files
+        #wait a minute between job starts, helps handle copying of large numbers of large input files
         job_sub_file.write('next_job_start_delay = 60\n') 
         job_sub_file.write('queue\n')
     #end loop over jobs

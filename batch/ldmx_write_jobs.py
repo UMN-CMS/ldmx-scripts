@@ -81,6 +81,7 @@ with open(arg.job_list,'w') as job_sub_file :
     if not arg.nonice:
         job_sub_file.write("nice_user           = True\n")
     job_sub_file.write("request_memory      =  4 Gb\n")
+    job_sub_file.write("on_exit_hold        = (ExitCode != 0) #hold onto job if exited with non-zero exit code\n")
     
     for job in range(arg.start_job,arg.start_job+jobs) :
         arguments = arguments_template.format(
@@ -100,7 +101,7 @@ with open(arg.job_list,'w') as job_sub_file :
 
         job_sub_file.write('arguments = %s\n'%arguments)
         #wait a minute between job starts, helps handle copying of large numbers of large input files
-        job_sub_file.write('next_job_start_delay = 60\n') 
+        job_sub_file.write('next_job_start_delay = 60\n #pause for a minute to allow large file transfer') 
         job_sub_file.write('queue\n')
     #end loop over jobs
 #submit job list is open

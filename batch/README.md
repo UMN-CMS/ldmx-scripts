@@ -21,6 +21,13 @@ You can feel free to add other arguments here as well, but since these arguments
 
 The batch machinery does *nothing* to determine what the name of the output file is. *You are responsible for making sure the output files from your batch jobs do not conflict.* A good habit is to have the `run_number` argument be used in the output file name so that you know that the output files are unique across the different numbered jobs.
 
+### Test Config Script
+Check to make sure your config script and your stable installation run how you thinkthink it should. Make sure to open a new terminal so that you are starting from a clean environment (like the worker nodes will be).
+```
+source /local/cms/user/$USER/ldmx/stable-installs/<install-name>/setup.sh
+fire my-config.py
+```
+
 ## Write Job List
 
 Condor works by submitting a list of jobs to run. You can write a list of jobs using the python executable `ldmx_write_jobs.py`.

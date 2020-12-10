@@ -1,6 +1,6 @@
 #!/bin/bash
 
-set -ex
+set -x
 
 ###############################################################################
 # run_fire.sh
@@ -27,7 +27,11 @@ cd $_scratch_area
 # This is probably overkill, but wanted
 #   to make sure
 _unique_working_dir="$(date +%Y-%M-%d-%H-%M)-pid-$$"
-mkdir -p $_unique_working_dir
+if ! mkdir -p $_unique_working_dir
+then
+  echo "Can't create a working directory in the scratch area."
+  exit 111
+fi
 cd $_unique_working_dir
 
 if [[ ! -z "$(ls -A .)" ]]
@@ -44,28 +48,50 @@ then
   # the fourth argument is actually a file, so
   #   copy that input file here and then shift
   #   the rest of the config args accordingly
-  cp $_input_file .
+  if ! cp $_input_file .
+  then
+    echo "Can't copy the input file to the working directory."
+    exit 112
+  fi
   _input_file=$(basename $_input_file)
   _to_remove="$_to_remove $_input_file"
   _config_args="${_config_args#*\ } --input_file $_input_file"
 fi
 
-cp $_config_script .
+if ! cp $_config_script .
+then
+  echo "Can't copy the config script to the working directory."
+  exit 113
+fi
 _config_script=$(basename $_config_script)
 _to_remove="$_to_remove $_config_script"
 
-source $_env_script
+if ! source $_env_script
+then
+  echo "Wasn't able to source the environment script."
+  exit 114
+fi
 
-fire \
-  $_config_script \
-  $_config_args
+if ! fire $_config_script $_config_args
+then
+  echo "fire returned an non-zero error status."
+  exit 115
+fi
 
 # first remove the input files
 #   so they don't get copied to the output
-rm -r $_to_remove
+if ! rm -r $_to_remove
+then
+  echo "Can't remove the input files."
+  exit 116
+fi
 
 # copy all other generated root files to output
-cp *.root $_output_dir
+if ! cp *.root $_output_dir
+then
+  echo "Can't copy the output root files to the output directory (or couldn't find output files)."
+  exit 117
+fi
 
 # clean up unique working dir
 cd ..

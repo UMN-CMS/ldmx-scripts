@@ -1,0 +1,16 @@
+# ldmx-sw at UMN
+
+This repository is focused on helping LDMX collaborators use ldmx-sw at UMN.
+
+Currently, UMN does *not* have a container running program installed, so we still have to construct the dependencies from `cvmfs`.
+
+This has been done in the `ldmx-env.sh` bash script.
+
+## Building and Running Steps
+
+- Setup Environment: `source ldmx-env.sh`
+  - **This assumes that `ldmx-sw` is downloaded into `/local/cms/user/<your-username>/ldmx/ldmx-sw`.**
+- Configure the Build: `cd ldmx-sw; mkdir build; cd build; ldmxcmake`
+- Make and Install: `make -j4 install`
+- Run: `fire config.py`
+

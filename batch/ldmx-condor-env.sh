@@ -23,3 +23,8 @@ alias watch-q='watch condor_q -submitter $USER -totals'
 exit-codes() {
   condor_history -long $1 | grep "ExitCode" | sort -u | awk '{printf "%d ", $NF} END {printf "\n"}'
 }
+
+# get the list of missing numbers from a list of sequential numbers
+missing-nums() {
+  awk 'NR != $1 + 1 { for (i = prev; i < $1; i++) {print i} } { prev = $1 + 1 }' $@
+}

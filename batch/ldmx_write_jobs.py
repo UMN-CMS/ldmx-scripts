@@ -84,7 +84,7 @@ parser.add_argument("--start_job",type=int,default=0,help="Starting number to us
 parser.add_argument("-t","--test",action='store_true',dest='test',help="Don't submit the job to the batch.")
 parser.add_argument("--nonice",action='store_true',dest="nonice",help="Do not run this at nice priority.")
 parser.add_argument("--run_script",type=str,help="Script to run jobs on worker nodes with.",default='%s/run_fire.sh'%os.path.dirname(os.path.realpath(__file__)))
-parser.add_argument("--tmp_root",type=str,help="Directory to create any working directories inside of.",default='/export/scratch/user/%s/'%os.environ['USER'])
+parser.add_argument("--tmp_root",type=str,help="Directory to create any working directories inside of.",default='/export/scratch/user/%s'%os.environ['USER'])
 parser.add_argument("--sleep",type=int,help="Time in seconds to sleep before starting the next job.",default=60)
 
 arg = parser.parse_args()

@@ -62,46 +62,87 @@ else :
 if not os.path.exists(env_script) :
     raise Exception('Environment script "%s" does not exist.'%env_script)
 
+
+class condor_submit_file() :
+    """A wrapper for writing a condor submit file.
+  
+    Parameters
+    ----------
+    name : str
+        Name of the condor_submit file to write
+    executable : str
+        Path to the executable that this file will be submitting
+    nice : bool
+        Is this cluster of jobs going to be nice?
+
+    Attributes
+    ----------
+    _file : File
+        file we are actually writing to
+    header_template : str
+        header string to show the hard-coded job parameters
+    """
+  
+    header_template="""
+executable          =  {executable}
+universe            =  vanilla
+requirements        =  Arch==\"X86_64\" && (Machine  !=  \"zebra01.spa.umn.edu\") && (Machine  !=  \"zebra02.spa.umn.edu\") && (Machine  !=  \"zebra03.spa.umn.edu\") && (Machine  !=  \"zebra04.spa.umn.edu\") && (Machine  !=  \"caffeine.spa.umn.edu\")
++CondorGroup        =  \"cmsfarm\"
+nice_user           = {nice}
+request_memory      =  4 Gb
+on_exit_hold        = (ExitCode != 0)
+"""
+
+    def __init__(self,name,executable,nice) :
+        self._file = open(name,'w')
+        self._file.write(condor_submit_file.header_template.format(
+          executable=os.path.realpath(executable),
+          nice=str(nice))
+          )
+
+    def __del__(self) :
+        """Close the file upon deletion"""
+        self._file.close()
+
+    def add(self,arguments,pause,test) :
+        """Submit a job with the input arguments and pause.
+
+        Parameters
+        ----------
+        arguments : str
+            arguments to pass to executable for this job
+        pause : int
+            length of time in seconds to pause before next job can start
+        test : bool
+            if True, we will also connect a file to the std{out,err} of the job
+        """
+
+        if test :
+          self._file.write('output = %s/$(Cluster)-$(Process).out\n'%(os.getcwd()))
+          self._file.write('error  = %s/$(Cluster)-$(Process).out\n'%(os.getcwd()))
+
+        self._file.write('arguments = %s\n'%arguments)
+        self._file.write('next_job_start_delay = %d\n'%pause)
+        self._file.write('queue\n')
+
+job_sub_file = condor_submit_file(arg.job_list,arg.run_script,not arg.nonice)
+    
 # This needs to match the correct order of the arguments in the run_fire.sh script
 #   The input file and any extra config arguments are optional and come after the
 #   three required arguments
 arguments_template = arg.tmp_root+'/$(Cluster)-$(Process) {env_script} {config_script} {out_dir}'
 
-# Write Condor submit file 
-with open(arg.job_list,'w') as job_sub_file :
-    job_sub_file.write("executable          =  %s\n"%os.path.realpath(arg.run_script))
-    job_sub_file.write("universe            =  vanilla\n")
-    job_sub_file.write("requirements        =  Arch==\"X86_64\"\n")
-    job_sub_file.write("                       &&  (Machine  !=  \"zebra01.spa.umn.edu\")\n")
-    job_sub_file.write("                       &&  (Machine  !=  \"zebra02.spa.umn.edu\")\n")
-    job_sub_file.write("                       &&  (Machine  !=  \"zebra03.spa.umn.edu\")\n")
-    job_sub_file.write("                       &&  (Machine  !=  \"zebra04.spa.umn.edu\")\n")
-    job_sub_file.write("                       &&  (Machine  !=  \"caffeine.spa.umn.edu\")\n")
-    job_sub_file.write("+CondorGroup        =  \"cmsfarm\"\n")
-    if not arg.nonice:
-        job_sub_file.write("nice_user           = True\n")
-    job_sub_file.write("request_memory      =  4 Gb\n")
-    job_sub_file.write("on_exit_hold        = (ExitCode != 0) #hold onto job if exited with non-zero exit code\n")
-    
-    for job in range(arg.start_job,arg.start_job+jobs) :
-        arguments = arguments_template.format(
-                env_script = env_script,
-                config_script = full_config_path,
-                out_dir = full_out_dir_path
-                )
+for job in range(arg.start_job,arg.start_job+jobs) :
+    arguments = arguments_template.format(
+            env_script = env_script,
+            config_script = full_config_path,
+            out_dir = full_out_dir_path
+            )
 
-        if arg.input_dir is not None :
-            arguments += ' %s/%s'%(full_input_dir,input_file_list[job-arg.start_job])
+    if arg.input_dir is not None :
+        arguments += ' %s/%s'%(full_input_dir,input_file_list[job-arg.start_job])
 
-        arguments += ' --run_number %d %s'%(job,arg.config_args)
+    arguments += ' --run_number %d %s'%(job,arg.config_args)
 
-        if arg.test :
-            job_sub_file.write('output = %s/$(Cluster)-$(Process).out\n'%(full_out_dir_path))
-            job_sub_file.write('error = %s/$(Cluster)-$(Process).err\n'%(full_out_dir_path))
-
-        job_sub_file.write('arguments = %s\n'%arguments)
-        #wait a minute between job starts, helps handle copying of large numbers of large input files
-        job_sub_file.write('next_job_start_delay = 60\n #pause for a minute to allow large file transfer') 
-        job_sub_file.write('queue\n')
-    #end loop over jobs
-#submit job list is open
+    job_sub_file.add(arguments,60,arg.test)
+#end loop over jobs

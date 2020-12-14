@@ -30,11 +30,9 @@ fire my-config.py
 
 ## Write Job List
 
-Condor works by submitting a list of jobs to run. You can write a list of jobs using the python executable `ldmx_write_jobs.py`.
-You can technically run `ldmx_write_jobs.py` from anywhere, so again a bash alias for it has been written to use it.
-Use `ldmx-write-jobs -h` to get a full explanation of the options.
+Condor retrieves a list of jobs from a submission file. Familiarizing yourself with the primitive programming that Condor uses to parse this submission file is very helpful becuase it can simplify the submission file and lead to less errors. Condor has pretty [good documentation](https://htcondor.readthedocs.io/en/latest/users-manual/submitting-a-job.html#submitting-many-similar-jobs-with-one-queue-command) on how to write this submission file.
 
-Before starting the jobs, skim through this list to double check that the arguments given to the jobs make sense. 
+But to help you get started, there is a simple python script `ldmx_write_jobs.py` that can write a submission file for you from the given inputs.
 
 ## Submit the Job List
 

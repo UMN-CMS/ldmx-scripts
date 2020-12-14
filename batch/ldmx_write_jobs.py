@@ -1,73 +1,10 @@
-
-class condor_submit_file() :
-    """A wrapper for writing a condor submit file.
-  
-    Parameters
-    ----------
-    name : str
-        Name of the condor_submit file to write
-    executable : str
-        Path to the executable that this file will be submitting
-    nice : bool
-        Is this cluster of jobs going to be nice?
-
-    Attributes
-    ----------
-    _file : File
-        file we are actually writing to
-    header_template : str
-        header string to show the hard-coded job parameters
-    """
-  
-    header_template="""
-executable          =  {executable}
-universe            =  vanilla
-requirements        =  Arch==\"X86_64\" && (Machine  !=  \"zebra01.spa.umn.edu\") && (Machine  !=  \"zebra02.spa.umn.edu\") && (Machine  !=  \"zebra03.spa.umn.edu\") && (Machine  !=  \"zebra04.spa.umn.edu\") && (Machine  !=  \"caffeine.spa.umn.edu\")
-+CondorGroup        =  \"cmsfarm\"
-nice_user           = {nice}
-request_memory      =  4 Gb
-on_exit_hold        = (ExitCode != 0)
-"""
-
-    def __init__(self,name,executable,nice) :
-        self._file = open(name,'w')
-        self._file.write(condor_submit_file.header_template.format(
-          executable=os.path.realpath(executable),
-          nice=str(nice))
-          )
-
-    def __del__(self) :
-        """Close the file upon deletion"""
-        self._file.close()
-
-    def add(self,arguments,pause,test) :
-        """Submit a job with the input arguments and pause.
-
-        Parameters
-        ----------
-        arguments : str
-            arguments to pass to executable for this job
-        pause : int
-            length of time in seconds to pause before next job can start
-        test : bool
-            if True, we will also connect a file to the std{out,err} of the job
-        """
-
-        if test :
-          self._file.write('output = %s/$(Cluster)-$(Process).out\n'%(os.getcwd()))
-          self._file.write('error  = %s/$(Cluster)-$(Process).out\n'%(os.getcwd()))
-
-        self._file.write('arguments = %s\n'%arguments)
-        self._file.write('next_job_start_delay = %d\n'%pause)
-        self._file.write('queue\n')
-
 import os,sys
 import argparse
 
 parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)
 
 # required arg
-parser.add_argument("job_list",type=str,help="Name of job list file that we should write to.")
+parser.add_argument("sub_file_name",type=str,help="Name of submission file that we should write to.")
 parser.add_argument("-c","--config",required=True,type=str,help="Config script to run.")
 parser.add_argument("-o","--out_dir",required=True,type=str,help="Directory to copy output to.")
 environment = parser.add_mutually_exclusive_group(required=True)
@@ -84,7 +21,7 @@ parser.add_argument("--start_job",type=int,default=0,help="Starting number to us
 parser.add_argument("-t","--test",action='store_true',dest='test',help="Don't submit the job to the batch.")
 parser.add_argument("--nonice",action='store_true',dest="nonice",help="Do not run this at nice priority.")
 parser.add_argument("--run_script",type=str,help="Script to run jobs on worker nodes with.",default='%s/run_fire.sh'%os.path.dirname(os.path.realpath(__file__)))
-parser.add_argument("--tmp_root",type=str,help="Directory to create any working directories inside of.",default='/export/scratch/user/%s'%os.environ['USER'])
+parser.add_argument("--scratch_root",type=str,help="Directory to create any working directories inside of.",default='/export/scratch/user/%s'%os.environ['USER'])
 parser.add_argument("--sleep",type=int,help="Time in seconds to sleep before starting the next job.",default=60)
 
 arg = parser.parse_args()
@@ -92,7 +29,7 @@ arg = parser.parse_args()
 jobs = 0
 if arg.input_dir is not None :
     full_input_dir = os.path.realpath(arg.input_dir)
-    input_file_list = os.listdir(arg.input_dir)
+    input_file_list = [ os.path.join(full_input_dir,f) for f in os.listdir(arg.input_dir) ]
     if arg.num_jobs is not None :
         jobs = min(arg.num_jobs,len(input_file_list))
     else :
@@ -124,24 +61,62 @@ else :
 if not os.path.exists(env_script) :
     raise Exception('Environment script "%s" does not exist.'%env_script)
 
-job_sub_file = condor_submit_file(arg.job_list,arg.run_script,not arg.nonice)
-    
-# This needs to match the correct order of the arguments in the run_fire.sh script
-#   The input file and any extra config arguments are optional and come after the
-#   three required arguments
-arguments_template = arg.tmp_root+'/$(Cluster)-$(Process) {env_script} {config_script} {out_dir}'
+header_template="""
+# Header for Jobs, defines global options and variables for use in this condor submission
+executable          =  {executable}
+universe            =  vanilla
+requirements        =  Arch==\"X86_64\" && (Machine  !=  \"zebra01.spa.umn.edu\") && (Machine  !=  \"zebra02.spa.umn.edu\") && (Machine  !=  \"zebra03.spa.umn.edu\") && (Machine  !=  \"zebra04.spa.umn.edu\") && (Machine  !=  \"caffeine.spa.umn.edu\")
++CondorGroup        =  \"cmsfarm\"
+nice_user           = {nice}
+request_memory      =  4 Gb
+on_exit_hold        = (ExitCode != 0)
+env_script          = {env_script}
+scratch_root        = {scratch_root}
+config_script       = {config}
+output_dir          = {out_dir}
 
-for job in range(arg.start_job,arg.start_job+jobs) :
-    arguments = arguments_template.format(
-            env_script = env_script,
-            config_script = full_config_path,
-            out_dir = full_out_dir_path
-            )
+"""
+
+with open(arg.sub_file_name,'w') as submission_file :
+    submission_file.write(header_template.format(
+          executable=os.path.realpath(arg.run_script),
+          nice=str(not arg.nonice),
+          env_script = env_script,
+          scratch_root = arg.scratch_root,
+          config = full_config_path,
+          out_dir = full_out_dir_path
+          ))
+
+    if arg.test :
+        submission_file.write('output = %s/$(Cluster)-$(Process).out\n'%(full_out_dir_path))
+        submission_file.write('error  = %s/$(Cluster)-$(Process).out\n'%(full_out_dir_path))
+
+    # This needs to match the correct order of the arguments in the run_fire.sh script
+    #   The input file and any extra config arguments are optional and come after the
+    #   three required arguments
+    arguments = '$(scratch_root)/$(Cluster)-$(Process) $(env_script) $(config_script) $(output_dir)'
 
     if arg.input_dir is not None :
-        arguments += ' %s/%s'%(full_input_dir,input_file_list[job-arg.start_job])
+        arguments += ' $(input_file)'
 
-    arguments += ' --run_number %d %s'%(job,arg.config_args)
+    arguments += ' --run_number %(run_number) ' + arg.config_args
 
-    job_sub_file.add(arguments,arg.sleep,arg.test)
-#end loop over jobs
+    submission_file.write('arguments = %s\n'%arguments)
+    submission_file.write('next_job_start_delay = %d\n'%arg.sleep)
+
+    if arg.input_dir is not None :
+        if jobs != len(input_file_list) :
+            # need special listing
+            #  -> construct list of input files and run numbers
+            submission_file.write('queue run_number, input_file from (\n')
+            for run in range(jobs) :
+                submission_file.write('\t%d, %s\n'%(arg.start_job+run,input_file_list[run]))
+            submission_file.write(')\n')
+        else :
+            # submitting the whole directory
+            submission_file.write('run_number=$(Process)\n')
+            submission_file.write('queue input_file matching files %s/*\n'%(full_input_dir))
+    else :
+        # submitting a range of run numbers
+        submission_file.write('queue run_number from seq %d %d\n'%(arg.start_job,arg.start_job+arg.num_jobs-1))
+

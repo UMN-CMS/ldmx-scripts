@@ -118,5 +118,5 @@ with open(arg.sub_file_name,'w') as submission_file :
             submission_file.write('queue input_file matching files %s/*\n'%(full_input_dir))
     else :
         # submitting a range of run numbers
-        submission_file.write('queue run_number from seq %d %d\n'%(arg.start_job,arg.start_job+arg.num_jobs-1))
+        submission_file.write('queue run_number from seq %d %d |\n'%(arg.start_job,arg.start_job+arg.num_jobs-1))
 

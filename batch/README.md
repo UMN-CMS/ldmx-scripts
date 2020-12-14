@@ -45,3 +45,4 @@ It is _highly_ recommend for you to save the job list. It will help if you need 
 # Extra Notes
 - To prevent overloading the file system, your job should copy any input files to the worker node (probably to a scratch directory of some kind), write any output into that working directory, and then copy the output to the desired output directory. This is already done in the script that is used to run the jobs by default `run_fire.sh`, but it is hightlighted here for you if you want to do something else.
 - You can use the command `condor_q` to see the current status of your jobs.
+- The `-long` option to `condor_q` or `condor_history` dumps all of the information about the job(s) that you have selected with the other command line options. This is helpful for seeing exactly what was run.

@@ -1,3 +1,9 @@
+"""Writing jobs for ldmx Condor batch submission
+
+This python script is intended to be used with the running script 'run_fire.sh' in
+this current directory.
+"""
+
 import os,sys
 import argparse
 
@@ -61,35 +67,66 @@ else :
 if not os.path.exists(env_script) :
     raise Exception('Environment script "%s" does not exist.'%env_script)
 
-header_template="""
-# Header for Jobs, defines global options and variables for use in this condor submission
-executable          =  {executable}
+sub_file_template="""# Condor Submission File
+# Header for Jobs, defines global variables for use in this condor submission
+#   anything defined here will be defined for the rest of this submission file
+#   they can be re-defined and then the new value would be used for any later 'queue' commands
+
+# These variables are general condor variables that are helpful for us
 universe            =  vanilla
 requirements        =  Arch==\"X86_64\" && (Machine  !=  \"zebra01.spa.umn.edu\") && (Machine  !=  \"zebra02.spa.umn.edu\") && (Machine  !=  \"zebra03.spa.umn.edu\") && (Machine  !=  \"zebra04.spa.umn.edu\") && (Machine  !=  \"caffeine.spa.umn.edu\")
 +CondorGroup        =  \"cmsfarm\"
-nice_user           = {nice}
+
+# How much memory does this job require?
+#   This is somewhat hard to determine since one does not normally track memory usage of one's programs.
+#   4 Gb of RAM is a high upper limit, so this probably mean that less jobs will run in parallel, BUT
+#   it helps make sure no jobs slow down due to low amount of available memory.
 request_memory      =  4 Gb
+
+# This line keeps any jobs in a 'hold' state return a failure exit status
+#   If you are developing a new executable (run script), this might need to be removed
+#   until you get your exit statuses defined properly
 on_exit_hold        = (ExitCode != 0)
+
+# This line tells condor whether we should be 'nice' or not.
+#   Niceness is a way for condor to help determine how 'urgent' this job is
+#   Please default to alwasy being nice
+nice_user           = {nice}
+
+# Now our job specific information
+#   'executable' is required by condor and that variable name cannot be changed
+#   the other variable names are ours and can be changed and used in the rest of this file
+executable          = {executable}
 env_script          = {env_script}
 scratch_root        = {scratch_root}
 config_script       = {config}
 output_dir          = {out_dir}
 
+# We define the run number sequentially based off of the Process variabled defined by condor
+#   Condor iterates the Process variable with each job submitted starting at 0, 
+#   so we simply add the run number we want to start on.
+run_number          = $(Process) + {start_job}
+
+# This is the number of seconds to pause between starting jobs
+#   It is helpful to have some lag time so that transferring large files can happen
+#   without overloading the file system
+next_job_start_delay = {sleep}
+
+# Finally, we define the arguments to the executable we defined earlier
+#   Notice that we can use the variables we have defined earlier in this argument list
+#   Condor will make the substitutions before starting the job
+arguments = {arguments}
+
+"""
+
+queue_comment = """
+# Submit the Jobs
+#   Now we actually submit the jobs.
+#   The 'queue' command can do several things and this is where Condor handles the variables defined about it.
+#   Look at the Condor documentation for all the details about how to write a helpful 'queue' command.
 """
 
 with open(arg.sub_file_name,'w') as submission_file :
-    submission_file.write(header_template.format(
-          executable=os.path.realpath(arg.run_script),
-          nice=str(not arg.nonice),
-          env_script = env_script,
-          scratch_root = arg.scratch_root,
-          config = full_config_path,
-          out_dir = full_out_dir_path
-          ))
-
-    if arg.test :
-        submission_file.write('output = %s/$(Cluster)-$(Process).out\n'%(full_out_dir_path))
-        submission_file.write('error  = %s/$(Cluster)-$(Process).out\n'%(full_out_dir_path))
 
     # This needs to match the correct order of the arguments in the run_fire.sh script
     #   The input file and any extra config arguments are optional and come after the
@@ -101,22 +138,37 @@ with open(arg.sub_file_name,'w') as submission_file :
 
     arguments += ' --run_number %(run_number) ' + arg.config_args
 
-    submission_file.write('arguments = %s\n'%arguments)
-    submission_file.write('next_job_start_delay = %d\n'%arg.sleep)
+    submission_file.write(sub_file_template.format(
+          executable=os.path.realpath(arg.run_script),
+          nice=str(not arg.nonice),
+          env_script = env_script,
+          scratch_root = arg.scratch_root,
+          config = full_config_path,
+          out_dir = full_out_dir_path,
+          start_job = arg.start_job,
+          sleep = arg.sleep,
+          arguments = arguments,
+          ))
+
+    if arg.test :
+        submission_file.write('Print any terminal messages that come up during the job to the file below\n')
+        submission_file.write('output = %s/$(Cluster)-$(Process).out\n'%(full_out_dir_path))
+        submission_file.write('error  = %s/$(Cluster)-$(Process).out\n'%(full_out_dir_path))
+
+    submission_file.write(queue_comment)
 
     if arg.input_dir is not None :
         if jobs != len(input_file_list) :
             # need special listing
             #  -> construct list of input files and run numbers
-            submission_file.write('queue run_number, input_file from (\n')
+            submission_file.write('queue input_file from (\n')
             for run in range(jobs) :
-                submission_file.write('\t%d, %s\n'%(arg.start_job+run,input_file_list[run]))
+                submission_file.write('\t%s\n'%(input_file_list[run]))
             submission_file.write(')\n')
         else :
             # submitting the whole directory
-            submission_file.write('run_number=$(Process)\n')
             submission_file.write('queue input_file matching files %s/*\n'%(full_input_dir))
     else :
         # submitting a range of run numbers
-        submission_file.write('queue run_number from seq %d %d |\n'%(arg.start_job,arg.start_job+arg.num_jobs-1))
+        submission_file.write('queue %d \n'%arg.num_jobs)
 

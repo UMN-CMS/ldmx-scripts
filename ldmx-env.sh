@@ -50,7 +50,7 @@ ldmx-remake() {
 }
 
 # setup the condor batch environemtn
-alias ldmx-condor-env='source $LDMX_ENV_DIR/batch/ldmx-condor-env.sh'
+alias ldmx-condor-env='source $LDMX_ENV_DIR/batch/condor_env.sh'
 
 ### The rest is believed to be the same for all umn users
 # It is a hassle to change the gcc version because all of the other

@@ -1,9 +1,10 @@
 # Batch at UMN
 This directory contains the basic files you need to submit batch jobs to UMN through the condor system.
 In order to run batch jobs, there is a series of set-up steps that are necessary.
+To get access to the pre-defined bash aliases after source the LDMX environment script, run `ldmx-condor-env` to import those commands.
 
 ## Build Stable Installation
-First, we need to create a "stable" installation of ldmx-sw so that the batch jobs can be running along in the background and you can keep doing other things. This directory has a bash script called `make_stable.sh` that will do this process for you. It can be run from (almost) anywhere, so a bash alias has been written for it in the `ldmx-env.sh` script.
+First, we need to create a "stable" installation of ldmx-sw so that the batch jobs can be running along in the background and you can keep doing other things. This directory has a bash script called `make_stable.sh` that will do this process for you. It can be run from (almost) anywhere, so a bash alias has been written for it in the `condor_env.sh` script.
 
 When you get the source code at `/local/cms/user/$USER/ldmx/ldmx-sw/` to where you want it. Then simply run `ldmx-make-stable` to create a stable installation at `/local/cms/user/$USER/ldmx/stable-installs/` and you can move on to the next step.
 

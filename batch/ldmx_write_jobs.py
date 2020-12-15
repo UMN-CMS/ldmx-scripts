@@ -16,12 +16,15 @@ parser.add_argument("-o","--out_dir",required=True,type=str,help="Directory to c
 environment = parser.add_mutually_exclusive_group(required=True)
 environment.add_argument("--env_script",type=str,default=None,help="Environment script to run before running fire.")
 environment.add_argument("--ldmx_version",type=str,default=None,help="LDMX Version to pick a pre-made environment script.")
+how_many_jobs = parser.add_mutually_exclusive_group(required=True)
+how_many_jobs.add_argument("--input_dir",default=None,type=str,help="Directory containing input files to run over.")
+how_many_jobs.add_argument("--num_jobs",type=int,default=None,help="Number of jobs to run (if not input directory given).")
 
 # optional arg
-parser.add_argument("--input_dir",default=None,type=str,help="Directory containing input files to run over.")
-parser.add_argument("--num_jobs",type=int,default=None,help="Number of jobs to run (if not input directory given).")
+parser.add_argument("--input_arg_name",type=str,default='--input_file',help='Name of argument that should go before the input file when passing it to the config script. Only used if running over the items in a directory.')
+parser.add_argument("--run_arg_name",type=str,default='--run_number',help='Name of argument that should go before the run number when passing it to the config script. Only used if NOT running over items in a directory.')
 parser.add_argument("--config_args",type=str,default='',help="Extra arguments to be passed to the configuration script.")
-parser.add_argument("--start_job",type=int,default=0,help="Starting number to use when counting jobs (and run numbers)")
+parser.add_argument("--start_job",type=int,default=0,help="Starting number to use when run numbers. Only used if NOT running over items in a directory.")
 
 # rarely-used optional args
 parser.add_argument("-t","--test",action='store_true',dest='test',help="Attach terminal output of worker nodes to files for later viewing. ONLY GOOD FOR DEBUGGING. This will overload the filesystem if you use it on large batches.")
@@ -31,19 +34,6 @@ parser.add_argument("--scratch_root",type=str,help="Directory to create any work
 parser.add_argument("--sleep",type=int,help="Time in seconds to sleep before starting the next job.",default=60)
 
 arg = parser.parse_args()
-
-jobs = 0
-if arg.input_dir is not None :
-    full_input_dir = os.path.realpath(arg.input_dir)
-    input_file_list = [ os.path.join(full_input_dir,f) for f in os.listdir(arg.input_dir) ]
-    if arg.num_jobs is not None :
-        jobs = min(arg.num_jobs,len(input_file_list))
-    else :
-        jobs = len(input_file_list)
-elif arg.num_jobs is not None :
-    jobs = arg.num_jobs
-else :
-    parser.error("Either an input directory of files or a number of jobs needs to be given.")
 
 # make the output directory
 full_out_dir_path = os.path.realpath(arg.out_dir)
@@ -57,12 +47,13 @@ full_config_path = os.path.realpath(arg.config)
 if not os.path.exists(full_config_path) :
     raise Exception('Config script "%s" does not exist.'%full_config_path)
 
+if 'hdfs' not in full_config_path :
+    print(' WARN You are running a config script that is *not* in /hdfs/cms/%s/.'%os.environ['USER'])
+
 if arg.env_script is not None :
     env_script = os.path.realpath(arg.env_script)
-elif arg.ldmx_version is not None :
-    env_script = "/local/cms/user/%s/ldmx/stable-installs/%s/setup.sh"%(os.environ['USER'],arg.ldmx_version)
 else :
-    parser.error('Either a full env script \'--env_script\' or a ldmx_version \'--ldmx_version\' must be specified.')
+    env_script = "/local/cms/user/%s/ldmx/stable-installs/%s/setup.sh"%(os.environ['USER'],arg.ldmx_version)
 
 if not os.path.exists(env_script) :
     raise Exception('Environment script "%s" does not exist.'%env_script)
@@ -106,14 +97,7 @@ output_dir    = {out_dir}
 #   It is helpful to have some lag time so that transferring large files can happen
 #   without overloading the file system
 next_job_start_delay = {sleep}
-
-# We will be using a run_number in the argument list, so we define it here
-#   as a special variable that is a shift away from the Process ID.
-#   Process is a condor defined variable that starts at 0 and increments up for each
-#   job submitted. Here we use it to define sequential run numbers.
-run_number_calculation = $(Process) + {start_job}
-run_number = $INT(run_number_calculation)
-
+{run_number_calc}
 # Finally, we define the arguments to the executable we defined earlier
 #   Notice that we can use the variables we have defined earlier in this argument list
 #   Condor will make the substitutions before starting the job
@@ -126,31 +110,37 @@ arguments = {arguments}
 {queue_command}
 """
 
+run_number_calculation="""
+# We will be using a run_number in the argument list, so we define it here
+#   as a special variable that is a shift away from the Process ID.
+#   Process is a condor defined variable that starts at 0 and increments up for each
+#   job submitted. Here we use it to define sequential run numbers.
+run_number_calculation = $(Process) + {start_job}
+run_number = $INT(run_number_calculation)
+"""
+
 # This needs to match the correct order of the arguments in the run_fire.sh script
 #   The input file and any extra config arguments are optional and come after the
 #   three required arguments
 arguments = '$(scratch_root)/$(Cluster)-$(Process) $(env_script) $(config_script) $(output_dir)'
 
-if arg.input_dir is not None :
-    arguments += ' $(input_file)'
-
-arguments += ' --run_number $(run_number) ' + arg.config_args
-
 queue_command = ''
+
 if arg.input_dir is not None :
-    if jobs != len(input_file_list) :
-        # need special listing
-        #  -> construct list of input files and run numbers
-        queue_command += 'queue input_file from (\n'
-        for run in range(jobs) :
-            queue_command += '\t%s\n'%(input_file_list[run])
-        queue_command += ')\n'
-    else :
-        # submitting the whole directory
-        queue_command += 'queue input_file matching files %s/*\n'%(full_input_dir)
+    run_number_calculation = "" #no need for run number when running over input files
+    arguments += ' ' + arg.input_arg_name + ' $(input)'
+    # submitting the whole directory
+    full_input_dir = os.path.realpath(arg.input_dir)
+    if 'hdfs' not in full_input_dir :
+        print(' WARN You are running jobs over files in a directory *not* in /hdfs/cms/%s/.'%os.environ['USER'])
+    queue_command += 'queue input matching files %s/*\n'%(full_input_dir)
 else :
+    run_number_calculation = run_number_calculation.format(start_job = arg.start_job)
+    arguments += ' ' + arg.run_arg_name + ' $(run_number)'
     # submitting a range of run numbers
-    queue_command += 'queue %d \n'%(jobs)
+    queue_command += 'queue %d \n'%(arg.num_jobs)
+
+arguments += arg.config_args
 
 terminal_output = """
 # Print any terminal messages that come up during the job to the file below
@@ -169,9 +159,9 @@ with open(arg.sub_file_name,'w') as submission_file :
           scratch_root = arg.scratch_root,
           config = full_config_path,
           out_dir = full_out_dir_path,
-          start_job = arg.start_job,
           sleep = arg.sleep,
           arguments = arguments,
+          run_number_calc = run_number_calculation,
           terminal_output = terminal_output,
           queue_command = queue_command
           ))

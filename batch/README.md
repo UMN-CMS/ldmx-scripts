@@ -11,14 +11,7 @@ When you get the source code at `/local/cms/user/$USER/ldmx/ldmx-sw/` to where y
 ## Config Script
 
 The file you need to worry about editing to your specifc job is `config.py`.
-The `config.py` file given here shows the execution of the most basic simulation we have and shows the three inputs given to the python scriopt automatically by the submission script. These three inputs (the argparse stuff at the top) is _necessary_ to be able to run your script.
-
-Input | Description
----|---
-`input_file` | If an input file for the run is given, this argument is set to the name of the input file after it is copied over to the working directory.
-`run_number` | Passed as the run number from the `ldmx_write_jobs.py`. Look there if you wish to control how these run numbers are generated.
-
-You can feel free to add other arguments here as well, but since these arguments need to interact with the other parts of the batch machinery, they are _required_.
+The `config.py` file given here shows the execution of the most basic simulation we have and shows the basic method we use to pass different so-called "run-numbers" to the configuration. You can also use a similar set up for passing an input file.
 
 ### Output File
 
@@ -38,7 +31,7 @@ Once you know that `my-config.py` runs correctly with the stable installation of
 
 Condor retrieves a list of jobs from a submission file. Familiarizing yourself with the primitive programming that Condor uses to parse this submission file is very helpful becuase it can simplify the submission file and lead to less errors. Condor has pretty [good documentation](https://htcondor.readthedocs.io/en/latest/users-manual/submitting-a-job.html#submitting-many-similar-jobs-with-one-queue-command) on how to write this submission file.
 
-But to help you get started, there is a simple python script `ldmx_write_jobs.py` that can write a submission file for you from the given inputs. This python script is pretty general, so a bash alias has been written for it. Use `ldmx-write-jobs -h` to see how to use it.
+But to help you get started, there is a simple python script `ldmx_write_jobs.py` that can write submission files for the two most common applications: production (where you want to run the same simulation but with different random seeds many times) and analysis (where you want to run the same configuration over a set of data files). This python script can be run (almost) anywhere, so a bash alias has been written for it. Use `ldmx-write-jobs -h` to see how to use it in detail. *Note*: This python script will not handle more complicated cases, but it should give you a good place to start; again, I refer you to the documentation above for more complicated use cases.
 
 ## Submit the Job List
 

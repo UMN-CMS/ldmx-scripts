@@ -12,7 +12,6 @@ _work_dir=$1 # directory to run inside of
 _env_script=$2 #environment to use
 _config_script=$3 #script itself to run
 _output_dir=$4 #output directory to copy products to
-_input_file=$5 #optional
 _config_args=${@:5} #arguments to configuration script
 
 if ! mkdir -p $_work_dir
@@ -37,28 +36,6 @@ then
 fi
 
 _to_remove="__pycache__"
-if [[ -f $_input_file ]]
-then
-  # the fourth argument is actually a file, so
-  #   check if we need to copy it here
-  if [[ "_input_file" != *"hdfs"* ]]
-  then
-    # copy that input file here becuase it is
-    #   not stored in hdfs
-    if ! cp $_input_file .
-    then
-      echo "Can't copy the input file to the working directory."
-      exit 112
-    fi
-    _input_file=$(basename $_input_file)
-    _to_remove="$_to_remove $_input_file"
-  fi
-
-  # shift the config args and add the input file as its
-  #   own config arg
-  _config_args="${_config_args#*\ } --input_file $_input_file"
-fi
-
 if [[ "$_config_script" != *"hdfs"* ]]
 then
   if ! cp $_config_script .

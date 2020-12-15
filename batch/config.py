@@ -14,6 +14,7 @@ p.run = args.run_number
 p.maxEvents = 10
 
 from LDMX.SimCore import examples
+import LDMX.Ecal.EcalGeometry
 p.sequence = [ examples.inclusive_single_e() ]
 
 p.outputFiles = [ 'inclusive_single_e_output_10_events_r%04d.root'%(p.run) ]

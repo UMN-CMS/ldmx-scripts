@@ -30,34 +30,44 @@ then
   rm -r *
 fi
 
+if ! source $_env_script
+then
+  echo "Wasn't able to source the environment script."
+  exit 111
+fi
+
 _to_remove="__pycache__"
 if [[ -f $_input_file ]]
 then
   # the fourth argument is actually a file, so
-  #   copy that input file here and then shift
-  #   the rest of the config args accordingly
-  if ! cp $_input_file .
+  #   check if we need to copy it here
+  if [[ "_input_file" != *"hdfs"* ]]
   then
-    echo "Can't copy the input file to the working directory."
-    exit 112
+    # copy that input file here becuase it is
+    #   not stored in hdfs
+    if ! cp $_input_file .
+    then
+      echo "Can't copy the input file to the working directory."
+      exit 112
+    fi
+    _input_file=$(basename $_input_file)
+    _to_remove="$_to_remove $_input_file"
   fi
-  _input_file=$(basename $_input_file)
-  _to_remove="$_to_remove $_input_file"
+
+  # shift the config args and add the input file as its
+  #   own config arg
   _config_args="${_config_args#*\ } --input_file $_input_file"
 fi
 
-if ! cp $_config_script .
+if [[ "$_config_script" != *"hdfs"* ]]
 then
-  echo "Can't copy the config script to the working directory."
-  exit 113
-fi
-_config_script=$(basename $_config_script)
-_to_remove="$_to_remove $_config_script"
-
-if ! source $_env_script
-then
-  echo "Wasn't able to source the environment script."
-  exit 114
+  if ! cp $_config_script .
+  then
+    echo "Can't copy the config script to the working directory."
+    exit 113
+  fi
+  _config_script=$(basename $_config_script)
+  _to_remove="$_to_remove $_config_script"
 fi
 
 if ! fire $_config_script $_config_args

@@ -46,3 +46,4 @@ It is _highly_ recommend for you to save the job list. It will help if you need 
 - The `/hdfs/` directory is a file system specifically configured for a high number of different worker nodes to read from it. With this in mind, it is a good idea to have your output and input directories be a subdirectory of `/hdfs/`.
 - You can use the command `condor_q` to see the current status of your jobs.
 - The `-long` option to `condor_q` or `condor_history` dumps all of the information about the job(s) that you have selected with the other command line options. This is helpful for seeing exactly what was run.
+- If you are re-using the same job submission file but only change one or two parameters each time, you can use a parameter in the file like `$(my_parameter)` and then pass it on the command line using `condor_submit my_parameter=2 jobs.sub`.

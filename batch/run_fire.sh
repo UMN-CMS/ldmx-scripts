@@ -35,7 +35,7 @@ then
   exit 111
 fi
 
-_to_remove="__pycache__"
+_to_remove=""
 if [[ "$_config_script" != *"hdfs"* ]]
 then
   if ! cp $_config_script .
@@ -44,7 +44,7 @@ then
     exit 113
   fi
   _config_script=$(basename $_config_script)
-  _to_remove="$_to_remove $_config_script"
+  _to_remove="$_config_script __pycache__"
 fi
 
 if ! fire $_config_script $_config_args
@@ -55,10 +55,13 @@ fi
 
 # first remove the input files
 #   so they don't get copied to the output
-if ! rm -r $_to_remove
+if [[ ! -z "$_to_remove" ]]
 then
-  echo "Can't remove the input files."
-  exit 116
+  if ! rm -r $_to_remove
+  then
+    echo "Can't remove the config file."
+    exit 116
+  fi
 fi
 
 # copy all other generated root files to output

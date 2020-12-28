@@ -8,7 +8,7 @@
 alias ldmx-make-stable='bash $LDMX_ENV_DIR/batch/make_stable.sh'
 
 # helpful alias for writing batch job lists
-alias ldmx-write-jobs='python3 $LDMX_ENV_DIR/batch/ldmx_write_jobs.py'
+alias ldmx-write-jobs='python3 $LDMX_ENV_DIR/batch/write_jobs.py'
 
 # look at my job listing
 alias my-q='condor_q -submitter $USER'

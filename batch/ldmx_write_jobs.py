@@ -25,11 +25,13 @@ parser.add_argument("--input_arg_name",type=str,default='--input_file',help='Nam
 parser.add_argument("--run_arg_name",type=str,default='--run_number',help='Name of argument that should go before the run number when passing it to the config script. Only used if NOT running over items in a directory.')
 parser.add_argument("--config_args",type=str,default='',help="Extra arguments to be passed to the configuration script.")
 parser.add_argument("--start_job",type=int,default=0,help="Starting number to use when run numbers. Only used if NOT running over items in a directory.")
+parser.add_argument("--files_per_job",type=int,default=1,help="If running over an input directory, this argument defines how many files to group together per job.")
 
 # rarely-used optional args
+full_path_to_dir_we_are_in=os.path.dirname(os.path.relpath(__file__))
 parser.add_argument("-t","--test",action='store_true',dest='test',help="Attach terminal output of worker nodes to files for later viewing. ONLY GOOD FOR DEBUGGING. This will overload the filesystem if you use it on large batches.")
 parser.add_argument("--nonice",action='store_true',dest="nonice",help="Do not run this at nice priority.")
-parser.add_argument("--run_script",type=str,help="Script to run jobs on worker nodes with.",default='%s/run_fire.sh'%os.path.dirname(os.path.realpath(__file__)))
+parser.add_argument("--run_script",type=str,help="Script to run jobs on worker nodes with.",default='%s/run_fire.sh'%full_path_to_dir_we_are_in)
 parser.add_argument("--scratch_root",type=str,help="Directory to create any working directories inside of.",default='/export/scratch/user/%s'%os.environ['USER'])
 parser.add_argument("--sleep",type=int,help="Time in seconds to sleep before starting the next job.",default=60)
 
@@ -133,7 +135,10 @@ if arg.input_dir is not None :
     full_input_dir = os.path.realpath(arg.input_dir)
     if 'hdfs' not in full_input_dir :
         print(' WARN You are running jobs over files in a directory *not* in /hdfs/cms/%s/.'%os.environ['USER'])
-    queue_command += 'queue input matching files %s/*\n'%(full_input_dir)
+    if arg.files_per_job > 1 :
+        queue_command += 'queue input from bash %s/group_files.sh %d %s'%(full_path_to_dir_we_are_in,arg.files_per_job,full_input_dir)
+    else:
+        queue_command += 'queue input matching files %s/*\n'%(full_input_dir)
 else :
     run_number_calculation = run_number_calculation.format(start_job = arg.start_job)
     arguments += ' ' + arg.run_arg_name + ' $(run_number)'

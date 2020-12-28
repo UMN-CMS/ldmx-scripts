@@ -19,6 +19,14 @@ alias my-q-totals='my-q -totals'
 # watch the job totals
 alias watch-q='watch condor_q -submitter $USER -totals'
 
+# rm non-running jobs
+condor_rm_held() {
+  condor_rm -constraint 'JobStatus =!= 2'
+}
+
+# Release all jobs submitted by you
+alias release-me='condor_release $USER'
+
 # get the exit codes from the passed cluster of jobs (number before the .)
 exit-codes() {
   condor_history -long $1 | grep "ExitCode" | sort -u | awk '{printf "%d ", $NF} END {printf "\n"}'

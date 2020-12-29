@@ -73,7 +73,7 @@ ROOT_VERSION_6_16_gcc821_cxx17="6.16.00-gcc821-cxx17"
 ROOT_VERSION_6_16_gcc821="6.16.00-gcc821"
 ROOT_VERSION_6_20_gcc821_cxx17="6.20.00-gcc821-cxx17"
 ROOT_VERSION_6_22_gcc821_cxx17="6.22.00-gcc821-cxx17"
-ROOTDIR="$TMP_ROOT/local/cms/other/root/$ROOT_VERSION_6_20_gcc821_cxx17"
+ROOTDIR="$TMP_ROOT/local/cms/other/root/$ROOT_VERSION_6_22_gcc821_cxx17"
 export BOOSTDIR="/local/cms/user/eichl008/boost/install"
 
 # Using the bash variable 'PYTHONHOME' gives a hint to look

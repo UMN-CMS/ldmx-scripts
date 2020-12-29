@@ -66,9 +66,11 @@ cmake \
 
 make -j6 install
 
+# copy over dependency setup script
+cp $_dir_of_make_stable/../ldmx-setup-deps.sh $_install_dir
 # copy over a setup script substituting in the install directory
-sed "s+export LDMX_INSTALL_PREFIX.*$+export LDMX_INSTALL_PREFIX=\"$_install_dir\"+" \
-  $_dir_of_make_stable/../ldmx-env.sh \
+sed "s+INSTALL_DIR+$_install_dir+" \
+  $_dir_of_make_stable/setup.sh \
   > $_install_dir/setup.sh
 
 # return

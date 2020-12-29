@@ -19,7 +19,7 @@ export LDMX_INSTALL_PREFIX="INSTALL_DIR"
 #     "6.20.00-gcc821-cxx17"
 #     "6.22.00-gcc821-cxx17"
 
-if ! source ${LDMX_INSTALL_PREFIX}/ldmx-setup-deps.sh "geant4.10.02.p03_v0.3-gcc821" "6.22.00-gcc821-cxx17"
+if ! source ${LDMX_INSTALL_PREFIX}/ldmx-setup-deps.sh "geant4.10.02.p03_v0.3-gcc821" "6.20.00-gcc821-cxx17"
 then
   echo "Error setting up dependencies."
   return 1

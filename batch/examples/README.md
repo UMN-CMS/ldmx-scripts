@@ -2,7 +2,7 @@
 
 This directory contains a few more complicated condor submission files that can be used as templates instead of using the python script to write a new one.
 
-### production.sub
+## production.sub
 
 This submission file runs several jobs of "production" where there is no input files and we are simply generating data (usually via simulation).
 
@@ -23,11 +23,11 @@ condor_submit [start_job=START | refill=YES ] [save_output=DIR] production.sub [
 Option | Description
 ---|---
 `start_job` | `START` is an integer on which to start the run number counting. *Ignored if `refill` is used.*
-`refill` | Look through the output directory and re-run any run numbers that are missing. *Look at the `missing_runs.py` script for how the run numbers are determined.*
+`refill` | Look through the output directory and re-run any run numbers that are missing. *Look at the `missing_runs.py` script for how the run numbers are determined. It won't work unless your output files follow a certain format.*
 `save_output` | Prints the terminal output of the program to `DIR/<cluster-num>-<process-num>.out`.
 `-queue` | Submits `NJOBS` iterating the run number each time. *Should not be used with `refill`.*
 
-### analysis.sub
+## analysis.sub
 
 This submission file runs several jobs of "analysis" where we run a configuration over the input files given to it on the command line.
 

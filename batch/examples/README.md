@@ -21,6 +21,7 @@ condor_submit [start_job=START | refill=YES ] [save_output=DIR] production.sub [
 ```
 
 Option | Description
+---|---
 `start_job` | `START` is an integer on which to start the run number counting. *Ignored if `refill` is used.*
 `refill` | Look through the output directory and re-run any run numbers that are missing. *Look at the `missing_runs.py` script for how the run numbers are determined.*
 `save_output` | Prints the terminal output of the program to `DIR/<cluster-num>-<process-num>.out`.
@@ -46,6 +47,7 @@ condor_submit [nfiles_per_job=NPER] [max_jobs=MAX] [save_output=DIR] production.
 ```
 
 Option | Description
+---|---
 `nfiles_per_job` | `NPER` is the number of files to group into one analysis job. Default is 10.
 `max_jobs` | `MAX` is the maximum number of jobs to run. Default is to do as many jobs as needed to process all files in the input director{y,ies}.
 `save_output` | Prints the terminal output of the program to `DIR/<cluster-num>-<process-num>.out`.

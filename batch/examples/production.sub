@@ -1,0 +1,78 @@
+# Condor Submission File
+# Header for Jobs, defines global variables for use in this condor submission
+#   anything defined here will be defined for the rest of this submission file
+#   they can be re-defined and then the new value would be used for any later 'queue' commands
+
+# These variables are general condor variables that are helpful for us
+universe     = vanilla
+requirements = Arch=="X86_64" && (Machine  !=  "zebra01.spa.umn.edu") && (Machine  !=  "zebra02.spa.umn.edu") && (Machine  !=  "zebra03.spa.umn.edu") && (Machine  !=  "zebra04.spa.umn.edu") && (Machine  !=  "caffeine.spa.umn.edu") && (Machine != "scorpion24.spa.umn.edu")
++CondorGroup = "cmsfarm"
+
+# How much memory does this job require?
+#   This is somewhat hard to determine since one does not normally track memory usage of one's programs.
+#   4 Gb of RAM is a high upper limit, so this probably mean that less jobs will run in parallel, BUT
+#   it helps make sure no jobs slow down due to low amount of available memory.
+request_memory = 4 Gb
+
+# This line keeps any jobs in a 'hold' state return a failure exit status
+#   If you are developing a new executable (run script), this might need to be removed
+#   until you get your exit statuses defined properly
+on_exit_hold = (ExitCode != 0)
+
+# This line tells condor whether we should be 'nice' or not.
+#   Niceness is a way for condor to help determine how 'urgent' this job is
+#   Please default to alwasy being nice
+nice_user = True
+
+# Define variables to hold some helpful full paths
+hdfs_dir  = /hdfs/cms/user/$ENV(USER)/ldmx/MY_OUTPUT_DIRECTORY
+local_dir = /local/cms/user/$ENV(USER)/ldmx
+dir_of_run_fire=$(local_dir)/ldmx-scripts/batch
+
+# Now our job specific information
+#   'executable' is required by condor and that variable name cannot be changed
+#   the other variable names are ours and can be changed and used in the rest of this file
+executable    = $(dir_of_run_fire)/run_fire.sh
+env_script    = $(local_dir)/stable-installs/v3.0.0-dev-eat/setup.sh
+scratch_root  = /export/scratch/user/$ENV(USER)
+config_script = $(hdfs_dir)/details/config.py
+output_dir    = $(hdfs_dir)
+
+# This is the number of seconds to pause between starting jobs
+#   It is helpful to have some lag time so that transferring large files can happen
+#   without overloading the file system
+next_job_start_delay = 2
+
+# We will be using a run_number in the argument list, so we define it here
+#   as a special variable that is a shift away from the Process ID.
+#   Process is a condor defined variable that starts at 0 and increments up for each
+#   job submitted. Here we use it to define sequential run numbers.
+if defined start_job
+  run_number_calculation = $(Process) + $(start_job)
+  run_number = $INT(run_number_calculation)
+else
+  run_number = $(Process)
+endif
+
+# Maybe save the output, 
+#   if pass a defined save_output variable on command line
+if defined save_output
+  output = $Ff(save_output)/$(Cluster)-$(Process).out
+  error  = $Ff(save_output)/$(Cluster)-$(Process).out
+endif
+
+# Finally, we define the arguments to the executable we defined earlier
+#   Notice that we can use the variables we have defined earlier in this argument list
+#   Condor will make the substitutions before starting the job
+arguments = $(scratch_root)/$(Cluster)-$(Process) $(env_script) $(config_script) $(output_dir) $(run_number) 
+
+# If we define the refill option on the command line, we use the utility script 'missing_runs.py'
+#   in the batch directory. This goes into the input directory and gets all the numbers after 'run_'
+#   in the file name and then determines all the numbers between the lowest and highest run numbers
+#   that don't have a file.
+#
+# Defining 'run_number' in the queue command overrides previous definitions,
+#   so passing 'refill' on the command line makes 'start_job' do nothing.
+if defined refill
+  queue run_number from python3 $(dir_of_run_fire)/missing_runs.py $(hdfs_dir) |
+endif

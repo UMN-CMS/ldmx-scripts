@@ -27,6 +27,15 @@ condor_rm_held() {
 # Release all jobs submitted by you
 alias release-me='condor_release $USER'
 
+# Get the list of uniq hosts from the input file of long condor logs
+#   e.g. my-q -long | uniq-hosts
+alias uniq-hosts='grep RemoteHost | sort -u | cut -d " " -f 3'
+
+# Count the number of root files in the input directory
+file-count() {
+  ls -1 "$1"*.root | wc -l
+}
+
 # get the exit codes from the passed cluster of jobs (number before the .)
 exit-codes() {
   condor_history -long $1 | grep "ExitCode" | sort -u | awk '{printf "%d ", $NF} END {printf "\n"}'

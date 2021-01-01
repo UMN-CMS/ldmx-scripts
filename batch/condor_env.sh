@@ -10,6 +10,9 @@ alias ldmx-make-stable='bash $LDMX_ENV_DIR/batch/make_stable.sh'
 # helpful alias for writing batch job lists
 alias ldmx-write-jobs='python3 $LDMX_ENV_DIR/batch/write_jobs.py'
 
+# list missing run numbers from the input directory of files
+alias missing-runs='python3 $LDMX_ENV_DIR/batch/missing_runs.py'
+
 # look at my job listing
 alias my-q='condor_q -submitter $USER'
 
@@ -21,7 +24,7 @@ alias watch-q='watch condor_q -submitter $USER -totals'
 
 # rm non-running jobs
 condor_rm_held() {
-  condor_rm -constraint 'JobStatus =!= 2'
+  condor_rm -constraint 'JobStatus == 5'
 }
 
 # Release all jobs submitted by you

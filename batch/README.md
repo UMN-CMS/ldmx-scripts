@@ -3,25 +3,34 @@ This directory contains the basic files you need to submit batch jobs to UMN thr
 In order to run batch jobs, there is a series of set-up steps that are necessary.
 To get access to the pre-defined bash aliases after source the LDMX environment script, run `ldmx-condor-env` to import those commands.
 
+In this document and the source files themselves, I use a few short-hand phrases to refer to specific things.
+
+- `$USER` is your username. I use this shorthand because that is how it is stored in `bash`. In Python, you can get the username of whoever is running the script with `os.environ['USER']`.
+- "your hdfs directory" : This refers to `/hdfs/cms/user/$USER/ldmx/`
+- "your local directory" : This refers to `/local/cms/user/$USER/ldmx/`
+
 ## Build Stable Installation
 First, we need to create a "stable" installation of ldmx-sw so that the batch jobs can be running along in the background and you can keep doing other things. This directory has a bash script called `make_stable.sh` that will do this process for you. It can be run from (almost) anywhere, so a bash alias has been written for it in the `condor_env.sh` script.
 
-When you get the source code at `/local/cms/user/$USER/ldmx/ldmx-sw/` to where you want it. Then simply run `ldmx-make-stable` to create a stable installation at `/hdfs/cms/user/$USER/ldmx/stable-installs/` and you can move on to the next step.
+When you get the source code at `<your-local-dir>/ldmx-sw/` to where you want it. Then simply run `ldmx-make-stable` to create a stable installation at `<your-local-dir>/stable-installs/` and you can move on to the next step.
 
 ## Config Script
 
-The file you need to worry about editing to your specifc job is `config.py`.
-The `config.py` file given here shows the execution of the most basic simulation we have and shows the basic method we use to pass different so-called "run-numbers" to the configuration. You can also use a similar set up for passing an input file.
+The file you need to worry about editing to your specifc job a python configuration script.
+We have two example configuration scripts in this directory that you can look at (more detail in the examples below).
 
 ### Output File
 
-The batch machinery does *nothing* to determine what the name of the output file is. **You are responsible for making sure the output files from your batch jobs do not conflict.** A good habit is to have the `run_number` argument be used in the output file name so that you know that the output files are unique across the different numbered jobs.
+The batch machinery does *nothing* to determine what the name of the output file is. 
+**You are responsible for making sure the output files from your batch jobs do not conflict.** 
+A good habit is to have the `run_number` or `input_file` argument be used in the output file name so that you know that the output files are unique across the different jobs.
 
 ### Test Config Script
 Check to make sure your config script and your stable installation run how you thinkthink it should. Make sure to open a new terminal so that you are starting from a clean environment (like the worker nodes will be).
 ```
-source /hdfs/cms/user/$USER/ldmx/stable-installs/<install-name>/setup.sh
-fire my-config.py
+cd <your-local-dir>
+source stable-installs/<install-name>/setup.sh
+fire my-config.py <run_number-or-input_file>
 ```
 
 ## Submit Jobs
@@ -44,7 +53,7 @@ ldmx-submit-jobs -c production.py -o EXAMPLE --ldmx_version v2.3.0 --num_jobs 5
 ```
 
 *Comments* :
-- The output directory defined using `-o` is relative to your hdfs directory `/hdfs/cms/user/$USER/ldmx/`. If you want the output in some other directory, you need to specify the full path.
+- The output directory defined using `-o` is relative to your hdfs directory (so you will find the output of these five jobs in `<your-hdfs-dir>/EXAMPLE/`. If you want the output in some other directory, you need to specify the full path.
 - The version of ldmx-sw you want to use can be defined using the name of the directory it is in when using `ldmx-make-stable`. Your options for a stable installation are in `/local/cms/user/$USER/ldmx/stable-installs/`.
 - By default, the run numbers will start at `0` and count up from there. You can change the first run number by using the `--start_job` option. This is helpful when (for example), you want to run small group of jobs to make sure everything is working, but you don't want to waste time re-running the same run numbers.
 
@@ -89,11 +98,12 @@ ldmx-submit-jobs -c production.py -o EXAMPLE --ldmx_version v2.3.0 --refill
 Besides the generated event or histogram files, this script will also write a few files to assist in running batch.
 We put all of these generated files in the `<output-directory>/detail` directory so you can look at them later if you wish.
 
-- `config.py`: A copy of the python configuration script you want to run. We put this here for persistency and so that the worker nodes can be reading a file that is on `/hdfs` instead of overloading the `/local` filesystem.
+- `config.py`: A copy of the python configuration script you want to run. We put this here for persistency and so that the worker nodes can be reading a file that is on HDFS instead of overloading the local filesystem which is not configured to properly handle large numbers of read requests.
 - `submit.<cluster-id>.log`: This is a log of what was submitted to Condor for later debugging purposes. The integer `<cluster-id>` is the number we printout upon successful submission and identifies this group of jobs.
 
 # Extra Notes
 - The `/hdfs/` directory is a file system specifically configured for a high number of different worker nodes to read from it. With this in mind, it is a good idea to have your output and input directories be a subdirectory of `/hdfs/` and the job submission program above will warn you if your input or output directory is not a subdirectory of `/hdfs/`.
+- HTCondor has good documentation on [managing your jobs](https://htcondor.readthedocs.io/en/latest/users-manual/managing-a-job.html). This documentation is for a newer version of condor that we have, but you can still do most of what they describe.
 - You can use the command `condor_q` to see the current status of your jobs.
 - The `-long` option to `condor_q` or `condor_history` dumps all of the information about the job(s) that you have selected with the other command line options. This is helpful for seeing exactly what was run.
 - If you see a long list of sequential jobs "fail", it might be that a specific worker node isn't configured properly. Check that it is one worker-node's fault by running `my-q -held -long | uniq-hosts`. If only one worker node shows up (but you know that you have tens of failed jobs), then you can `ssh` to that machine to try to figure it out (or email csehelp if you aren't sure what to do). In the mean time, you can put that machine in your list of `Machine != <full machine name>` at the top of the submit file.

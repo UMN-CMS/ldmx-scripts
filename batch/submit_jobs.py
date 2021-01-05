@@ -6,6 +6,7 @@ This python script is intended to be used with the running script 'run_fire.sh' 
 import os,sys, stat
 import argparse
 import htcondor
+import classad
 from subprocess import Popen
 
 def hdfs_dir() :
@@ -50,6 +51,7 @@ parser.add_argument("--nonice",action='store_true',dest="nonice",help="Do not ru
 parser.add_argument("--sleep",type=int,help="Time in seconds to sleep before starting the next job.",default=2)
 parser.add_argument("--max_memory",type=str,default='4G',help='Maximum amount of memory to give jobs. If \'G\' is the last character, assume GB, othersie assume MB and convert to integer.')
 parser.add_argument("--periodic_release",action='store_true',help="Periodically release any jobs that exited because the worker node was not connected to cvmfs or hdfs.")
+parser.add_argument("--broken_machines",type=str,nargs='+',default=[],help="Extra list of machines that should be avoided, usually because they are not running your jobs for whatever reason. For example: --broken_machines scorpion34 scorpion17")
 
 arg = parser.parse_args()
 
@@ -99,16 +101,15 @@ def convert_memory(mem_str) :
         mem_str = mem_str[:-1]
         return 1024*int(mem_str)
     else :
-        return 1024*int(mem_str)
+        return int(mem_str)
 
 # HTCondor submit object takes a dictionary of parameters as an input
 #   And further modifications can be made to the parameters as if it was a dictionary
 job_instructions = htcondor.Submit({
   'universe' : 'vanilla',
-  'requirements' : 'Arch=="X86_64" && (Machine  !=  "zebra01.spa.umn.edu") && (Machine  !=  "zebra02.spa.umn.edu") && (Machine  !=  "zebra03.spa.umn.edu") && (Machine  !=  "zebra04.spa.umn.edu") && (Machine  !=  "caffeine.spa.umn.edu")',
 # The +CondorGroup (I believe) is telling Condor to include this job submission
 #   under the accounting for the 'cmsfarm' group
-  '+CondorGroup' : '"cmsfarm"',
+  '+CondorGroup' : classad.quote('cmsfarm'),
 # How much memory does this job require?
 #   This is somewhat hard to determine since one does not normally track memory usage of one's programs.
 #   4 Gb of RAM is a high upper limit, so this probably mean that less jobs will run in parallel, BUT
@@ -117,11 +118,11 @@ job_instructions = htcondor.Submit({
 # This line keeps any jobs in a 'hold' state return a failure exit status
 #   If you are developing a new executable (run script), this might need to be removed
 #   until you get your exit statuses defined properly
-  'on_exit_hold' : '(ExitCode != 0)',
+  'on_exit_hold' : classad.Attribute('ExitCode') != 0,
 # This line passes the ExitCode from the application as the hold subcode
-  'on_exit_hold_subcode' : '(ExitCode)',
+  'on_exit_hold_subcode' : classad.Attribute('ExitCode'),
 # And we explain that the hold was because run_fire failed
-  'on_exit_hold_reason' : '"run_fire.sh returned non-zero exit code (stored in HoldReasonSubCode)"',
+  'on_exit_hold_reason' : classad.quote('run_fire.sh returned non-zero exit code (stored in HoldReasonSubCode)'),
 # This line tells condor whether we should be 'nice' or not.
 #   Niceness is a way for condor to help determine how 'urgent' this job is
 #   Please default to alwasy being nice
@@ -131,7 +132,7 @@ job_instructions = htcondor.Submit({
 #   the other variable names are ours and can be changed and used in the rest of this file
   'output_dir' : full_out_dir_path,
   'env_script' : env_script,
-  'scratch_root' : '/export/scratch/user/%s'%os.environ['USER'],
+  'scratch_root' : '/export/scratch/users/%s'%os.environ['USER'],
   'config_script' : '$(output_dir)/detail/config.py',
   'executable' : full_run_path,
 # This is the number of seconds to pause between starting jobs
@@ -145,8 +146,19 @@ job_instructions = htcondor.Submit({
   'arguments' : '$(scratch_root)/$(Cluster)-$(Process) $(env_script) $(config_script) $(output_dir)'
 })
 
+def dont_use(machine) :
+    return '(Machine != "%s.spa.umn.edu")'%machine
+
+# Add additional machines to avoid using
+job_instructions['requirements'] = dont_use('caffeine')
+for m in ['zebra01','zebra02','zebra03','zebra04']+arg.broken_machines :
+    job_instructions['requirements'] += ' && ' + dont_use(m)
+
 # run_fire.sh exits with code 99 if the worker is not connected to cvmfs or hdfs
 #   in this case, we want to retry and hopefully find a worker that is correctly connected
+#
+# The period of this release depends on our specific configuration of HTCondor.
+#   The default is 60s, but our configuration may be different (and I can't figure it out).
 if arg.periodic_release :
   job_instructions['periodic_release'] = '(HoldReasonSubCode == 99) && (HoldReasonCode == 3)'
 

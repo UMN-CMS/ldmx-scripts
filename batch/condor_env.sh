@@ -7,14 +7,8 @@
 # helpful alias for making a stable installation
 alias ldmx-make-stable='bash $LDMX_ENV_DIR/batch/make_stable.sh'
 
-# helpful alias for writing batch job lists
-alias ldmx-write-jobs='python3 $LDMX_ENV_DIR/batch/write_jobs.py'
-
 # helpful alias for submitting batch jobs
 alias ldmx-submit-jobs='python3 $LDMX_ENV_DIR/batch/submit_jobs.py'
-
-# list missing run numbers from the input directory of files
-alias missing-runs='python3 $LDMX_ENV_DIR/batch/missing_runs.py'
 
 # look at my job listing
 alias my-q='condor_q -submitter $USER'
@@ -36,6 +30,9 @@ alias release-me='condor_release $USER'
 # Get the list of uniq hosts from the input file of long condor logs
 #   e.g. my-q -long | uniq-hosts
 alias uniq-hosts='grep RemoteHost | sort -u | cut -d " " -f 3'
+
+# Get the list of unique hosts for all currently held jobs
+alias held-hosts='my-q -held -long | uniq-hosts'
 
 # Count the number of root files in the input directory
 file-count() {

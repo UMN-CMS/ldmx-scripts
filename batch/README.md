@@ -76,7 +76,6 @@ Refill assumes that you want to refill an output directory, so simply give it an
 To see that it works, delete any two of the production files that we generated (except the first and the last!) and then run the following.
 ```
 ldmx-submit-jobs -c production.py -o hdfs:TEST --ldmx_version v2.3.0 --refill
-
 ```
 
 ### Output

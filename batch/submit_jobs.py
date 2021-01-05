@@ -1,7 +1,6 @@
 """Submitting jobs for ldmx to Condor batch submission
 
-This python script is intended to be used with the running script 'run_fire.sh' in
-this current directory.
+This python script is intended to be used with the running script 'run_fire.sh' in this current directory.
 """
 
 import os,sys, stat
@@ -19,7 +18,7 @@ parser = argparse.ArgumentParser('ldmx-submit-jobs',
     description="Submit batches of jobs running the ldmx-sw application.",
     formatter_class=argparse.RawDescriptionHelpFormatter)
 
-# required arg
+# required args
 parser.add_argument("-c",metavar='CONFIG',dest='config',required=True,type=str,help="CONFIG is python configuration script to run.")
 parser.add_argument("-o",metavar='OUT_DIR',dest='out_dir',required=True,type=str,help="OUT_DIR is directory to copy output to. Should be a subdirectory of /hdfs/")
 
@@ -32,9 +31,7 @@ how_many_jobs.add_argument("--input_dir",type=str,help="Directory containing inp
 how_many_jobs.add_argument("--num_jobs",type=int,help="Number of jobs to run (if not input directory given).")
 how_many_jobs.add_argument("--refill",action='store_true',help="Look through the output directory and re-run any run numbers that are missing.")
 
-# optional arg
-parser.add_argument("--config_args",type=str,default='',help="Extra arguments to be passed to the configuration script.")
-
+# optional args for configuring how the job runs
 parser.add_argument("--run_arg_name",type=str,default='',help='Name of argument that should go before the run number when passing it to the config script. Only used if NOT running over items in a directory.')
 parser.add_argument("--start_job",type=int,default=0,help="Starting number to use when run numbers. Only used if NOT running over items in a directory.")
 
@@ -44,10 +41,12 @@ parser.add_argument("--max_num_jobs",type=int,default=1000,help="If running over
 
 # rarely-used optional args
 full_path_to_dir_we_are_in=os.path.dirname(os.path.realpath(__file__))
+parser.add_argument("--run_script",type=str,help="Script to run jobs on worker nodes with.",default='%s/run_fire.sh'%full_path_to_dir_we_are_in)
+parser.add_argument("--config_args",type=str,default='',help="Extra arguments to be passed to the configuration script. Passed after the run_number or input_file.")
+parser.add_argument("--nocheck",action='store_true',help="Don't pause to look at job details before submitting.")
 parser.add_argument("--test",action='store_true',help="Just print Job details to terminal, don't actually submit.")
 parser.add_argument("--save_output",type=str,help="Save terminal output to the input directory. Only use for debugging purposes. This can over-burden the filesystem is used with too many (>10) jobs.")
 parser.add_argument("--nonice",action='store_true',dest="nonice",help="Do not run this at nice priority.")
-parser.add_argument("--run_script",type=str,help="Script to run jobs on worker nodes with.",default='%s/run_fire.sh'%full_path_to_dir_we_are_in)
 parser.add_argument("--sleep",type=int,help="Time in seconds to sleep before starting the next job.",default=2)
 
 arg = parser.parse_args()
@@ -203,6 +202,8 @@ else :
     items_to_loop_over = [{'run_number' : str(r)} for r in run_numbers]
 #input directory or not
 
+job_instructions['arguments'] += ' ' + arg.config_args
+
 # Now the instructions have been written,
 #   we can either printout the jobs that would have been submitted
 #   or actually submit them
@@ -216,6 +217,13 @@ def log_submission(f) :
 if arg.test :
     log_submission(sys.stdout)
 else :
+    if not arg.nocheck :
+        print('Job File:')
+        print(job_instructions)
+        raw_input('Press Enter to see Queue-ing list...')
+        print(items_to_loop_over)
+        raw_input('Press Enter to submit...')
+
     schedd = htcondor.Schedd()
     with schedd.transaction() as txn :
         submit_result = job_instructions.queue_with_itemdata(txn, itemdata=iter(items_to_loop_over))

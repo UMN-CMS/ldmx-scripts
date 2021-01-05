@@ -14,7 +14,7 @@ _config_script=$3 #script itself to run
 _output_dir=$4 #output directory to copy products to
 _config_args=${@:5} #arguments to configuration script
 
-if [ ! -d /cvmfs/cms.cern.ch || ! -d /hdfs/cms/user ];
+if [[ ! -d /cvmfs/cms.cern.ch || ! -d /hdfs/cms/user ]]
 then
   echo "Worker node is not connected to cvmfs and/or hdfs."
   exit 99

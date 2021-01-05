@@ -48,6 +48,8 @@ parser.add_argument("--test",action='store_true',help="Just print Job details to
 parser.add_argument("--save_output",type=str,help="Save terminal output to the input directory. Only use for debugging purposes. This can over-burden the filesystem is used with too many (>10) jobs.")
 parser.add_argument("--nonice",action='store_true',dest="nonice",help="Do not run this at nice priority.")
 parser.add_argument("--sleep",type=int,help="Time in seconds to sleep before starting the next job.",default=2)
+parser.add_argument("--max_memory",type=str,default='4G',help='Maximum amount of memory to give jobs. If \'G\' is the last character, assume GB, othersie assume MB and convert to integer.')
+parser.add_argument("--periodic_release",action='store_true',help="Periodically release any jobs that exited because the worker node was not connected to cvmfs or hdfs.")
 
 arg = parser.parse_args()
 
@@ -92,8 +94,15 @@ else :
 
 check_exists(env_script)
 
+def convert_memory(mem_str) :
+    if mem_str.endswith('G') :
+        mem_str = mem_str[:-1]
+        return 1024*int(mem_str)
+    else :
+        return 1024*int(mem_str)
+
 # HTCondor submit object takes a dictionary of parameters as an input
-#   Add further modifications can be made to the parameters as if it was a dictionary
+#   And further modifications can be made to the parameters as if it was a dictionary
 job_instructions = htcondor.Submit({
   'universe' : 'vanilla',
   'requirements' : 'Arch=="X86_64" && (Machine  !=  "zebra01.spa.umn.edu") && (Machine  !=  "zebra02.spa.umn.edu") && (Machine  !=  "zebra03.spa.umn.edu") && (Machine  !=  "zebra04.spa.umn.edu") && (Machine  !=  "caffeine.spa.umn.edu")',
@@ -104,11 +113,15 @@ job_instructions = htcondor.Submit({
 #   This is somewhat hard to determine since one does not normally track memory usage of one's programs.
 #   4 Gb of RAM is a high upper limit, so this probably mean that less jobs will run in parallel, BUT
 #   it helps make sure no jobs slow down due to low amount of available memory.
-  'request_memory' : '4 Gb',
+  'request_memory' : convert_memory(arg.max_memory),
 # This line keeps any jobs in a 'hold' state return a failure exit status
 #   If you are developing a new executable (run script), this might need to be removed
 #   until you get your exit statuses defined properly
   'on_exit_hold' : '(ExitCode != 0)',
+# This line passes the ExitCode from the application as the hold subcode
+  'on_exit_hold_subcode' : '(ExitCode)',
+# And we explain that the hold was because run_fire failed
+  'on_exit_hold_reason' : '"run_fire.sh returned non-zero exit code (stored in HoldReasonSubCode)"',
 # This line tells condor whether we should be 'nice' or not.
 #   Niceness is a way for condor to help determine how 'urgent' this job is
 #   Please default to alwasy being nice
@@ -131,6 +144,11 @@ job_instructions = htcondor.Submit({
 # We will be adding to this entry in the dictionary as we determine arguments to the config script
   'arguments' : '$(scratch_root)/$(Cluster)-$(Process) $(env_script) $(config_script) $(output_dir)'
 })
+
+# run_fire.sh exits with code 99 if the worker is not connected to cvmfs or hdfs
+#   in this case, we want to retry and hopefully find a worker that is correctly connected
+if arg.periodic_release :
+  job_instructions['periodic_release'] = '(HoldReasonSubCode == 99) && (HoldReasonCode == 3)'
 
 # If 'save_output' is defined on the command line
 #   use the passed string as the directory to dump terminal output files

@@ -19,7 +19,16 @@ alias my-q-totals='my-q -totals'
 # watch the job totals
 alias watch-q='watch condor_q -submitter $USER -totals'
 
-# rm non-running jobs
+# From docs
+#   JobStatus | Value
+#   Idle      | 1
+#   Running   | 2
+#   Removing  | 3
+#   Completed | 4
+#   Held      | 5
+#   Transfer  | 6
+#   Suspended | 7
+# rm held jobs
 condor_rm_held() {
   condor_rm -constraint 'JobStatus == 5'
 }

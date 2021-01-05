@@ -2,8 +2,7 @@
 import argparse
 parser = argparse.ArgumentParser(description='')
 
-parser.add_argument('--run_number',type=int,help='ID number for this run.')
-parser.add_argument('--input_file',type=str,help='Input file to process.')
+parser.add_argument('run_number',type=int,help='ID number for this run.')
 
 args = parser.parse_args() 
 

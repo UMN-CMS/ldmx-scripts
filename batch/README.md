@@ -24,26 +24,70 @@ source /hdfs/cms/user/$USER/ldmx/stable-installs/<install-name>/setup.sh
 fire my-config.py
 ```
 
-### Stable Copy
-Once you know that `my-config.py` runs correctly with the stable installation of ldmx-sw you have set up. You should make a copy of `my-config.py` and put it somehwere in your `hdfs` directory `/hdfs/cms/user/$USER/`. This is because each job will be attempting to read `my-config.py`, and `hdfs` is a filesystem designed to handle large numbers of reads.
+## Submit Jobs
+[HTCondor has a Python API](https://htcondor.readthedocs.io/en/latest/apis/python-bindings/tutorials/Submitting-and-Managing-Jobs.html) that we have used to specialize job submission to our use case of running the `fire` program.
+We have aliased the running of the `submit_jobs.py` script to `ldmx-submit-jobs`, so you can use it anywhere. Run `ldmx-submit-jobs -h` for an explanation of all its parameters.
 
-## Write Job List
+### Examples
 
-Condor retrieves a list of jobs from a submission file. Familiarizing yourself with the primitive programming that Condor uses to parse this submission file is very helpful becuase it can simplify the submission file and lead to less errors. Condor has pretty [good documentation](https://htcondor.readthedocs.io/en/latest/users-manual/submitting-a-job.html#submitting-many-similar-jobs-with-one-queue-command) on how to write this submission file.
+There are three basic examples that are used regularly and are (almost) the only jobs you will need to do at the batch-running level.
+These examples assume that you have made a stable installation of ldmx-sw v2.3.0 using `ldmx-make-stable`.
 
-But to help you get started, there is a simple python script `ldmx_write_jobs.py` that can write submission files for the two most common applications: production (where you want to run the same simulation but with different random seeds many times) and analysis (where you want to run the same configuration over a set of data files). This python script can be run (almost) anywhere, so a bash alias has been written for it. Use `ldmx-write-jobs -h` to see how to use it in detail. *Note*: This python script will not handle more complicated cases, but it should give you a good place to start; again, I refer you to the documentation above for more complicated use cases.
+#### 1. Production
 
-## Submit the Job List
-
-Now you can submit the jobs to the cluster by running the following command.
+Here, I use the term "production" to refer to large-scale generation of simulation samples, but in general for our purposes, it simply means that the only input into your configuration is the number to use as a random seed. 
+The basic idea for production is to increment through a large number of random seeds and run the same production configuration for each. 
+You can see an example "production" script (although at a much smaller scale) in this directory: `production.py`.
+You would submit five jobs of this production script from this directory like so. 
 ```
-condor_submit <job_list.sub>
+ldmx-submit-jobs -c production.py -o hdfs:TEST --ldmx_version v2.3.0 --num_jobs 5
 ```
-It is _highly_ recommend for you to save the job list. It will help if you need to re-run the same jobs or if you want to debug if anything went wrong.
+Notice that the `hdfs:` prefix can be used instead of the long `/hdfs/cms/user/$USER/ldmx/`.
+
+#### 2. Analysis
+
+Here, "analysis" could be anything that uses and input file (or files) and produces some output file (or files).
+From our point of view, it doesn't matter if you are producing another event file (perhaps doing a different reconstruction for later analysis) or producing a file of histograms.
+Let's analyze the files that the above script generated using the `analysis.py` script in this directory.
+```
+ldmx-submit-jobs -c analysis.py -o hdfs:TEST/hists --input_dir hdfs:TEST --ldmx_version v2.3.0 --files_per_job 2
+```
+Since there are five files to analyze and we are asking for two files per job, we will have three jobs 
+(two with two files and one with one).
+
+#### 3. Refill
+
+This is really 1b, but since it is the most complicated, I waited until now to describe it.
+Whenever there are lots of computations, little things tend to go wrong.
+The most common issues on our systems are the following
+
+- Getting kicked from a node when you are a "nice" user by a "not-nice" user.
+- A job failing becuase the node it is assigned to is not connected to cvmfs or hdfs for whatever reason.
+
+All of these issues lead to a job failing through no fault of its own.
+Therefore, if you are reasonably confident that your jobs failed for these reasons,
+you can "refill" any wholes in your production sequence by using this option.
+
+Here, we assume that the run number given to the production configuration script is stored in the output file name similar to the example `production.py`: `<other-stuff>_run_<run-number>.root`.
+If your output file is not formatted like this, then this option will not work.
+
+Refill assumes that you want to refill an output directory, so simply give it an output directory and the `--refill` option and it will look through that output directory, find all the run numbers between the minimum and maximum that don't have a file, and run those run numbers.
+
+To see that it works, delete any two of the production files that we generated (except the first and the last!) and then run the following.
+```
+ldmx-submit-jobs -c production.py -o hdfs:TEST --ldmx_version v2.3.0 --refill
+
+```
+
+### Output
+Besides the generated event or histogram files, this script will also write a few files to assist in running batch.
+We put all of these generated files in the `<output-directory>/detail` directory so you can look at them later if you wish.
+
+- `config.py`: A copy of the python configuration script you want to run. We put this here for persistency and so that the worker nodes can be reading a file that is on `/hdfs` instead of overloading the `/local` filesystem.
+- `submit.<cluster-id>.log`: This is a log of what was submitted to Condor for later debugging purposes. The integer `<cluster-id>` is the number we printout upon successful submission and identifies this group of jobs.
 
 # Extra Notes
-- To prevent overloading the file system, your job should copy any input files to the worker node (probably to a scratch directory of some kind), write any output into that working directory, and then copy the output to the desired output directory. This is already done in the script that is used to run the jobs by default `run_fire.sh`, but it is hightlighted here for you if you want to do something else.
-- The `/hdfs/` directory is a file system specifically configured for a high number of different worker nodes to read from it. With this in mind, it is a good idea to have your output and input directories be a subdirectory of `/hdfs/`.
+- The `/hdfs/` directory is a file system specifically configured for a high number of different worker nodes to read from it. With this in mind, it is a good idea to have your output and input directories be a subdirectory of `/hdfs/` and the job submission program above will warn you if your input or output directory is not a subdirectory of `/hdfs/`.
 - You can use the command `condor_q` to see the current status of your jobs.
 - The `-long` option to `condor_q` or `condor_history` dumps all of the information about the job(s) that you have selected with the other command line options. This is helpful for seeing exactly what was run.
-- If you are re-using the same job submission file but only change one or two parameters each time, you can use a parameter in the file like `$(my_parameter)` and then pass it on the command line using `condor_submit my_parameter=2 jobs.sub`.
+- If you see a long list of sequential jobs "fail", it might be that a specific worker node isn't configured properly. Check that it is one worker-node's fault by running `my-q -held -long | uniq-hosts`. If only one worker node shows up (but you know that you have tens of failed jobs), then you can `ssh` to that machine to try to figure it out (or email csehelp if you aren't sure what to do). In the mean time, you can put that machine in your list of `Machine != <full machine name>` at the top of the submit file.

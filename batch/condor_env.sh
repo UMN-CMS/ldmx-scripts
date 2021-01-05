@@ -10,6 +10,9 @@ alias ldmx-make-stable='bash $LDMX_ENV_DIR/batch/make_stable.sh'
 # helpful alias for writing batch job lists
 alias ldmx-write-jobs='python3 $LDMX_ENV_DIR/batch/write_jobs.py'
 
+# helpful alias for submitting batch jobs
+alias ldmx-submit-jobs='python3 $LDMX_ENV_DIR/batch/submit_jobs.py'
+
 # list missing run numbers from the input directory of files
 alias missing-runs='python3 $LDMX_ENV_DIR/batch/missing_runs.py'
 
@@ -36,7 +39,7 @@ alias uniq-hosts='grep RemoteHost | sort -u | cut -d " " -f 3'
 
 # Count the number of root files in the input directory
 file-count() {
-  ls -1 "$1"*.root | wc -l
+  ls -f "$1" | wc -l
 }
 
 # get the exit codes from the passed cluster of jobs (number before the .)

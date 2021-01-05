@@ -40,9 +40,13 @@ The basic idea for production is to increment through a large number of random s
 You can see an example "production" script (although at a much smaller scale) in this directory: `production.py`.
 You would submit five jobs of this production script from this directory like so. 
 ```
-ldmx-submit-jobs -c production.py -o hdfs:TEST --ldmx_version v2.3.0 --num_jobs 5
+ldmx-submit-jobs -c production.py -o EXAMPLE --ldmx_version v2.3.0 --num_jobs 5
 ```
-Notice that the `hdfs:` prefix can be used instead of the long `/hdfs/cms/user/$USER/ldmx/`.
+
+*Comments* :
+- The output directory defined using `-o` is relative to your hdfs directory `/hdfs/cms/user/$USER/ldmx/`. If you want the output in some other directory, you need to specify the full path.
+- The version of ldmx-sw you want to use can be defined using the name of the directory it is in when using `ldmx-make-stable`. Your options for a stable installation are in `/local/cms/user/$USER/ldmx/stable-installs/`.
+- By default, the run numbers will start at `0` and count up from there. You can change the first run number by using the `--start_job` option. This is helpful when (for example), you want to run small group of jobs to make sure everything is working, but you don't want to waste time re-running the same run numbers.
 
 #### 2. Analysis
 
@@ -50,9 +54,12 @@ Here, "analysis" could be anything that uses and input file (or files) and produ
 From our point of view, it doesn't matter if you are producing another event file (perhaps doing a different reconstruction for later analysis) or producing a file of histograms.
 Let's analyze the files that the above script generated using the `analysis.py` script in this directory.
 ```
-ldmx-submit-jobs -c analysis.py -o hdfs:TEST/hists --input_dir hdfs:TEST --ldmx_version v2.3.0 --files_per_job 2
+ldmx-submit-jobs -c analysis.py -o EXAMPLE/hists --input_dir EXAMPLE --ldmx_version v2.3.0 --files_per_job 2
 ```
-Since there are five files to analyze and we are asking for two files per job, we will have three jobs 
+
+*Comments*:
+- Like the output directory, the input directory is also relative to your hdfs directory unless a full path is specified.
+- Since there are five files to analyze and we are asking for two files per job, we will have three jobs 
 (two with two files and one with one).
 
 #### 3. Refill
@@ -75,7 +82,7 @@ Refill assumes that you want to refill an output directory, so simply give it an
 
 To see that it works, delete any two of the production files that we generated (except the first and the last!) and then run the following.
 ```
-ldmx-submit-jobs -c production.py -o hdfs:TEST --ldmx_version v2.3.0 --refill
+ldmx-submit-jobs -c production.py -o EXAMPLE --ldmx_version v2.3.0 --refill
 ```
 
 ### Output

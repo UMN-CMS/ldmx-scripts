@@ -20,14 +20,14 @@ parser = argparse.ArgumentParser('ldmx-submit-jobs',
 
 # required args
 parser.add_argument("-c",metavar='CONFIG',dest='config',required=True,type=str,help="CONFIG is python configuration script to run.")
-parser.add_argument("-o",metavar='OUT_DIR',dest='out_dir',required=True,type=str,help="OUT_DIR is directory to copy output to. Should be a subdirectory of /hdfs/")
+parser.add_argument("-o",metavar='OUT_DIR',dest='out_dir',required=True,type=str,help="OUT_DIR is directory to copy output to. If the path given is relative (i.e. does not begin with '/'), then we assume it is relative to your hdfs directory: %s"%hdfs_dir())
 
 environment = parser.add_mutually_exclusive_group(required=True)
 environment.add_argument("--env_script",type=str,help="Environment script to run before running fire.")
 environment.add_argument("--ldmx_version",type=str,help="LDMX Version to pick a pre-made environment script.")
 
 how_many_jobs = parser.add_mutually_exclusive_group(required=True)
-how_many_jobs.add_argument("--input_dir",type=str,help="Directory containing input files to run over. If the string begins with 'hdfs:' then we replace 'hdfs:' with %s/"%hdfs_dir())
+how_many_jobs.add_argument("--input_dir",type=str,help="Directory containing input files to run over. If the path given is relative (i.e. does not begin with '/'), then we assume it is relative to your hdfs directory: %s"%hdfs_dir())
 how_many_jobs.add_argument("--num_jobs",type=int,help="Number of jobs to run (if not input directory given).")
 how_many_jobs.add_argument("--refill",action='store_true',help="Look through the output directory and re-run any run numbers that are missing.")
 
@@ -56,8 +56,8 @@ def check_exists(path) :
         raise Exception("'%s' does not exist."%path)
 
 def full_dir(path, make=True) :
-    if path.startswith('hdfs:') :
-        path = hdfs_dir()+'/'+path[5:]
+    if not path.startswith('/') :
+        path = hdfs_dir()+'/'+path
     full_path = os.path.realpath(path)
     if make :
         os.makedirs(full_path, exist_ok=True)
@@ -214,15 +214,20 @@ def log_submission(f) :
         f.write(j.printJson())
         f.write('\n')
 
+def pause_before(next_thing) :
+    answer = input('[Q/q] to quit or anything else to '+next_thing+'... ')
+    if answer.capitalize().startswith('Q') :
+        sys.exit()
+
 if arg.test :
     log_submission(sys.stdout)
 else :
     if not arg.nocheck :
         print('Job File:')
         print(job_instructions)
-        raw_input('Press Enter to see Queue-ing list...')
+        pause_before('see Queue-ing list')
         print(items_to_loop_over)
-        raw_input('Press Enter to submit...')
+        pause_before('submit')
 
     schedd = htcondor.Schedd()
     with schedd.transaction() as txn :

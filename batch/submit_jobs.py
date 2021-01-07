@@ -24,13 +24,13 @@ parser.add_argument("-c",metavar='CONFIG',dest='config',required=True,type=str,h
 parser.add_argument("-o",metavar='OUT_DIR',dest='out_dir',required=True,type=str,help="OUT_DIR is directory to copy output to. If the path given is relative (i.e. does not begin with '/'), then we assume it is relative to your hdfs directory: %s"%hdfs_dir())
 
 environment = parser.add_mutually_exclusive_group(required=True)
-environment.add_argument("--env_script",type=str,help="Environment script to run before running fire.")
-environment.add_argument("--ldmx_version",type=str,help="LDMX Version to pick a pre-made environment script.")
+environment.add_argument('-e',metavar='ENV_SCRIPT',dest='env_script',type=str,help="Environment script to run before running fire.")
+environment.add_argument('-l',metavar='LDMX_VERSION',dest='ldmx_version',type=str,help="LDMX Version to pick a pre-made environment script.")
 
 how_many_jobs = parser.add_mutually_exclusive_group(required=True)
-how_many_jobs.add_argument("--input_dir",type=str,help="Directory containing input files to run over. If the path given is relative (i.e. does not begin with '/'), then we assume it is relative to your hdfs directory: %s"%hdfs_dir())
-how_many_jobs.add_argument("--num_jobs",type=int,help="Number of jobs to run (if not input directory given).")
-how_many_jobs.add_argument("--refill",action='store_true',help="Look through the output directory and re-run any run numbers that are missing.")
+how_many_jobs.add_argument('-i',metavar='INPUT_DIR',dest='input_dir',type=str,help="Directory containing input files to run over. If the path given is relative (i.e. does not begin with '/'), then we assume it is relative to your hdfs directory: %s"%hdfs_dir())
+how_many_jobs.add_argument('-n',metavar='NUM_JOBS',dest='num_jobs',type=int,help="Number of jobs to run (if not input directory given).")
+how_many_jobs.add_argument('-r','--refill',dest='refill',action='store_true',help="Look through the output directory and re-run any run numbers that are missing.")
 
 # optional args for configuring how the job runs
 parser.add_argument("--run_arg_name",type=str,default='',help='Name of argument that should go before the run number when passing it to the config script. Only used if NOT running over items in a directory.')

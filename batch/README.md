@@ -49,7 +49,7 @@ The basic idea for production is to increment through a large number of random s
 You can see an example "production" script (although at a much smaller scale) in this directory: `production.py`.
 You would submit five jobs of this production script from this directory like so. 
 ```
-ldmx-submit-jobs -c production.py -o EXAMPLE --ldmx_version v2.3.0 --num_jobs 5
+ldmx-submit-jobs -c production.py -o EXAMPLE -l v2.3.0 -n 5
 ```
 
 *Comments* :
@@ -63,7 +63,7 @@ Here, "analysis" could be anything that uses and input file (or files) and produ
 From our point of view, it doesn't matter if you are producing another event file (perhaps doing a different reconstruction for later analysis) or producing a file of histograms.
 Let's analyze the files that the above script generated using the `analysis.py` script in this directory.
 ```
-ldmx-submit-jobs -c analysis.py -o EXAMPLE/hists --input_dir EXAMPLE --ldmx_version v2.3.0 --files_per_job 2
+ldmx-submit-jobs -c analysis.py -o EXAMPLE/hists -i EXAMPLE -l v2.3.0 --files_per_job 2
 ```
 
 *Comments*:
@@ -91,7 +91,7 @@ Refill assumes that you want to refill an output directory, so simply give it an
 
 To see that it works, delete any two of the production files that we generated (except the first and the last!) and then run the following.
 ```
-ldmx-submit-jobs -c production.py -o EXAMPLE --ldmx_version v2.3.0 --refill
+ldmx-submit-jobs -c production.py -o EXAMPLE -l v2.3.0 -r
 ```
 
 ### Output

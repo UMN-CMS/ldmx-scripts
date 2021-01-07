@@ -57,3 +57,6 @@ exit-codes() {
 missing-nums() {
   awk 'NR != $1 + 1 { for (i = prev; i < $1; i++) {print i} } { prev = $1 + 1 }' $@
 }
+
+# Add our python modules to the PYTHONPATH to make things easier to run
+export PYTHONPATH=$PYTHONPATH:$LDMX_ENV_DIR/batch/detail/

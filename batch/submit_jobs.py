@@ -28,7 +28,7 @@ environment.add_argument('-e',metavar='ENV_SCRIPT',dest='env_script',type=str,he
 environment.add_argument('-l',metavar='LDMX_VERSION',dest='ldmx_version',type=str,help="LDMX Version to pick a pre-made environment script.")
 
 how_many_jobs = parser.add_mutually_exclusive_group(required=True)
-how_many_jobs.add_argument('-i',metavar='INPUT_DIR',dest='input_dir',type=str,help="Directory containing input files to run over. If the path given is relative (i.e. does not begin with '/'), then we assume it is relative to your hdfs directory: %s"%hdfs_dir())
+how_many_jobs.add_argument('-i',metavar='INPUT_DIR',dest='input_dir',type=str,nargs='+',help="Directory containing input files to run over. If the path given is relative (i.e. does not begin with '/'), then we assume it is relative to your hdfs directory: %s"%hdfs_dir())
 how_many_jobs.add_argument('-n',metavar='NUM_JOBS',dest='num_jobs',type=int,help="Number of jobs to run (if not input directory given).")
 how_many_jobs.add_argument('-r','--refill',dest='refill',action='store_true',help="Look through the output directory and re-run any run numbers that are missing.")
 
@@ -172,14 +172,21 @@ if arg.save_output is not None :
     job_instructions['error' ] = os.path.join(full_dir(arg.save_output),'$(Cluster)-$(Process).out')
 
 if arg.input_dir is not None :
-    # submitting the whole directory
-    full_input_dir = full_dir(arg.input_dir,False)
-    if 'hdfs' not in full_input_dir :
-        print(' WARN You are running jobs over files in a directory *not* in %s.'%hdfs_dir())
+    
+    input_file_list = []
+    for input_dir in arg.input_dir :
+        # submitting the whole directory
+        full_input_dir = full_dir(input_dir,False)
+        if 'hdfs' not in full_input_dir :
+            print(' WARN You are running jobs over files in a directory *not* in %s.'%hdfs_dir())
+
+        input_file_list.extend(
+            [f for f in os.listdir(full_input_dir) if f.endswith('.root')]
+            )
+    #end loop over input directories
 
     # we need to define a list of dictionaries that htcondor submission will loop over
     #   we partition the list of input files into space separate lists of maximum length arg.files_per_job
-    input_file_list = os.listdir(full_input_dir)
     def partition(l, n) :
         chunks = []
         for i in range(0,len(l),n):
@@ -245,7 +252,7 @@ def log_submission(f) :
         f.write('\n')
 
 def pause_before(next_thing) :
-    answer = input('[Q/q] to quit or anything else to '+next_thing+'... ')
+    answer = input('[Q/q+Enter] to quit or [Enter] to '+next_thing+'... ')
     if answer.capitalize().startswith('Q') :
         sys.exit()
 

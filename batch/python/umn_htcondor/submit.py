@@ -5,82 +5,26 @@ Here we define some helpful funcitons you can run from within the python3 interp
 
 import htcondor #HTCondor Python API
 import classad  #HTCondor internal data structure
-import getpass  #Gets current user name for HTCondor
-import os # for OS user name
+import getpass  #Gets current user name
+import os # for path joining and directory listing
 import shutil # for copying files
-
-def hdfs_dir() :
-    """Get the current users ldmx directory in hdfs"""
-    return f'/hdfs/cms/user/{os.environ["USER"]}/ldmx'
-
-def local_dir() :
-    """Get the current users ldmx directory in local"""
-    return f'/local/cms/user/{os.environ["USER"]}/ldmx'
-
-def dont_use(machine) :
-    """Return an HTCondor-style expression banning the use of the input machine."""
-    return f'(Machine != "{machine}.spa.umn.edu")'
-
-def convert_memory(mem_str) :
-    """Convert the input memory string into the integer equivalent in mega-bytes.
-
-    Currently on GB and MB are supported.
-    """
-
-    if mem_str.endswith('G') :
-        mem_str = mem_str[:-1]
-        return 1024*int(mem_str)
-    else :
-        return int(mem_str)
-
-def check_exists(path) :
-    """Check that the input path exists on the file system.
-
-    Does not check if the path is a file or directory.
-    """
-
-    if not os.path.exists(path) :
-        raise Exception("'%s' does not exist."%path)
-
-def full_dir(path, make=True) :
-    """Get the full path to the input directory
-    and (maybe) create it if it doesn't exist.
-
-    Make sure that it exists and if not,
-    completely exit the script.
-    """
-
-    if not path.startswith('/') :
-        path = hdfs_dir()+'/'+path
-    full_path = os.path.realpath(path)
-    if make :
-        os.makedirs(full_path, exist_ok=True)
-    check_exists(full_path)
-    return full_path
-
-def full_file(path) :
-    """Get the full path to the input file.
-
-    Make sure that it exists and throw and Exception if not.
-    """
-
-    full_path = os.path.realpath(path)
-    check_exists(full_path)
-    return full_path
+import sys # for exiting after check failure
+from umn_htcondor import utility 
 
 class JobInstructions(htcondor.Submit) :
     """Specialization of htcondor.Submit that has some helper functions for us."""
 
     def __init__(self,executable_path, output_dir, environment_script,
         input_arg_name = '', extra_config_args = '') :
-        self.__full_out_dir_path = full_dir(output_dir)
+
+        self.__full_out_dir_path = utility.full_dir(output_dir)
 
         if 'hdfs' not in self.__full_out_dir_path :
-            print(' WARN You are writing output files to a directory that is *not* in %s.'%hdfs_dir())
+            print(f' WARN You are writing output files to a directory that is *not* in {utility.hdfs_dir()}.')
 
-        self.__full_detail_dir_path = full_dir(os.path.join(self.__full_out_dir_path, 'detail'))
+        self.__full_detail_dir_path = utility.full_dir(os.path.join(self.__full_out_dir_path, 'detail'))
 
-        check_exists(environment_script)
+        utility.check_exists(environment_script)
 
         super().__init__({
             'universe' : 'vanilla',
@@ -104,10 +48,10 @@ class JobInstructions(htcondor.Submit) :
             #   the other variable names are ours and can be changed and used in the rest of this file
             'output_dir' : self.__full_out_dir_path,
             'env_script' : environment_script,
-            'scratch_root' : f'/export/scratch/users/{os.environ["USER"]}',
+            'scratch_root' : f'/export/scratch/users/{getpass.getuser()}',
             # assume config script is in output directory
             'config_script' : '$(output_dir)/detail/config.py',
-            'executable' : full_file(executable_path),
+            'executable' : utility.full_file(executable_path),
             # This needs to match the correct order of the arguments in the run_fire.sh script
             #   The input file and any extra config arguments are optional and come after the
             #   three required arguments
@@ -115,7 +59,7 @@ class JobInstructions(htcondor.Submit) :
             'arguments' : f'$(scratch_root)/$(Cluster)-$(Process) $(env_script) $(config_script) $(output_dir) {extra_config_args} {input_arg_name}'
           })
 
-        self['requirements'] = dont_use('caffeine')
+        self['requirements'] = utility.dont_use_machine('caffeine')
         for m in ['zebra01','zebra02','zebra03','zebra04'] :
             self.ban_machine(m)            
 
@@ -124,7 +68,7 @@ class JobInstructions(htcondor.Submit) :
     def memory(self,max_mem_str) :
         """Set the max memory requested for these jobs"""
 
-        self['request_memory'] = convert_memory(max_mem_str)
+        self['request_memory'] = utility.convert_memory(max_mem_str)
 
     def nice(self,be_nice) :
         """Set the nice-ness of these jobs
@@ -145,7 +89,7 @@ class JobInstructions(htcondor.Submit) :
         will need to be defined in the constructor.
         """
 
-        self['requirements'] += ' && ' + dont_use(m)
+        self['requirements'] = classad.ExprTree(self['requirements']).and_(utility.dont_use_machine(m))
 
     def sleep(self,time) :
         """Sleep for the input number of seconds between starting jobs.
@@ -163,7 +107,7 @@ class JobInstructions(htcondor.Submit) :
         directory so that jobs can have a stable copy of it.
         """
 
-        full_config_path = full_file(conf)
+        full_config_path = utility.full_file(conf)
         shutil.copy2(full_config_path, os.path.join(self.__full_detail_dir_path,'config.py'))
 
     def periodic_release(self) :
@@ -204,12 +148,12 @@ class JobInstructions(htcondor.Submit) :
         input_file_list = []
         for input_dir in arg.input_dir :
             # submitting the whole directory
-            full_input_dir = full_dir(input_dir,False)
+            full_input_dir = utility.full_dir(input_dir,False)
             if 'hdfs' not in full_input_dir :
                 print(' WARN You are running jobs over files in a directory *not* in %s.'%hdfs_dir())
     
             input_file_list.extend(
-                [f for f in os.listdir(full_input_dir) if f.endswith('.root')]
+                [os.path.join(full_input_dir,f) for f in os.listdir(full_input_dir) if f.endswith('.root')]
                 )
         #end loop over input directories
     
@@ -220,7 +164,7 @@ class JobInstructions(htcondor.Submit) :
             for i in range(0,len(l),n):
                 space_sep = ''
                 for p in l[i:i+n] :
-                    space_sep += '%s/%s '%(full_input_dir,p)
+                    space_sep += f'{p} '
                 #loop over sub list
                 chunks.append(space_sep) 
             #loop over full list
@@ -299,80 +243,4 @@ class JobInstructions(htcondor.Submit) :
           with open(f'{self.__full_detail_dir_path}/submit.{submit_result.cluster()}.log','w') as log :
               self._log_submission(log)
 
-def ban_machine(broken_machine) :
-    """Ban a machine from being used to run your jobs.
-
-    We assume that there is already at least one
-    requirement for all of the jobs. This is a fine
-    assumption since all of our jobs have the requirements
-    to avoid using the zebras.
-
-    UNTESTED
-
-    Parameters
-    ----------
-    broken_machine : str
-        Name of machine to ban without URL (e.g. scorpion3)
     
-    Examples
-    --------
-    >>> import manage_jobs
-    >>> ban_machine('scorpion43')
-    """
-
-    schedd = htcondor.Schedd()
-
-    # get the list of all jobs for the current user
-    all_jobs = schedd.query(f'Owner == "{getpass.getuser()}"',
-        projection=['ClusterId','ProcId','requirements'])
-
-    # need to edit each job individually because they might
-    #   have different requirements
-    for j in all_jobs :
-        schedd.edit(
-            f'{j["ClusterId"]}.{j["ProcId"]}',
-            'requirements',
-            f'{j["requirements"]} && (Machine != {broken_machine}.spa.umn.edu)'
-            )
-
-def translate_job_status_enum(s) :
-    """Translate status enum to human-readable status
-
-    Parameters
-    ----------
-    s : int
-        Job status enum
-    """
-
-    translation = {
-        1 : 'I', # Idle
-        2 : 'R', # Running
-        3 : 'E', # Evicting (removing)
-        4 : 'C', # Completed
-        5 : 'H', # Held
-        6 : 'T', # Transferring output
-        7 : 'S'  # Suspended
-        }
-
-    if s in translation :
-        return translation[s]
-    else :
-        return str(s)
-
-def print_q() :
-    """Print the job listing for the current user
-
-    Specialization of printing for what we care about.
-    ClusterId, ProcId, and the last argument given to the executable (either input files or run number)
-    """
-
-    schedd = htcondor.Schedd()
-    print(f'Cluster.Proc : St : HH:MM:SS : Input')
-    for j in schedd.query(f'Owner == "{getpass.getuser()}"') :
-        job_status = translate_job_status_enum(j['JobStatus'])
-        run_time = j['ServerTime'] - j['LastMatchTime'] #in s
-        hours = run_time // 3600
-        run_time %= 3600
-        minutes = run_time // 60
-        seconds = run_time % 60
-        print(f'{j["ClusterId"]:7}.{j["ProcId"]:<4} : {job_status:2} : {hours:02d}:{minutes:02d}:{seconds:02d} : {j["Args"].split(" ")[-1]}')

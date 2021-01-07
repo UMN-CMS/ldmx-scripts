@@ -5,7 +5,8 @@ This python script is intended to be used with the running script 'run_fire.sh' 
 
 import os
 import argparse
-from umn_htcondor import local_dir, hdfs_dir, JobInstructions
+from umn_htcondor.utility import local_dir, hdfs_dir
+from umn_htcondor.submit import JobInstructions
 
 parser = argparse.ArgumentParser('ldmx-submit-jobs',
     description="Submit batches of jobs running the ldmx-sw application.",

@@ -59,4 +59,4 @@ missing-nums() {
 }
 
 # Add our python modules to the PYTHONPATH to make things easier to run
-export PYTHONPATH=$PYTHONPATH:$LDMX_ENV_DIR/batch/detail/
+export PYTHONPATH=$PYTHONPATH:$LDMX_ENV_DIR/batch/python/

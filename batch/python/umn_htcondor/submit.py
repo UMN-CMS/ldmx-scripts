@@ -12,11 +12,44 @@ import sys # for exiting after check failure
 from umn_htcondor import utility 
 
 class JobInstructions(htcondor.Submit) :
-    """Specialization of htcondor.Submit that has some helper functions for us."""
+    """Specialization of htcondor.Submit that has some helper functions for us.
 
-    def __init__(self,executable_path, output_dir, environment_script,
+    Parameters
+    ----------
+    executable_path : str
+        Path to the executable to run fire
+    output_dir : str
+        Path to the directory to copy output files to
+        If relative, pre-pend with your hdfs directory.
+    environment_script : str
+        Path to environment script to run to set up job
+    config : str
+        Path to configuration script to give to fire
+        The config is copied to the detail directory and run from there to maintain stability.
+    input_arg_name : str, optional
+        String to give the config script before the input files/run_number
+        Default is empty string.
+    extra_config_args : str, optional
+        Extra arguments to supply to the config script on the command line
+        Default is empty string (no extra args)
+
+    Attributes
+    ----------
+    __full_out_dir_path : str
+        Full path to output directory
+    __full_detail_dir_path : str
+        Full path to directory to store details of this run
+    __items_to_loop_over : list[dict]
+        List of dictionaries defining the variables condor should loop over when submitting the jobs
+    __cluster_id : int
+        ID number for cluster these job instructions were submitted as (0 if not submitted yet)
+    """
+
+    def __init__(self,
+        executable_path, output_dir, environment_script, config,
         input_arg_name = '', extra_config_args = '') :
 
+        self.__cluster_id = 0
         self.__full_out_dir_path = utility.full_dir(output_dir)
 
         if 'hdfs' not in self.__full_out_dir_path :
@@ -25,6 +58,11 @@ class JobInstructions(htcondor.Submit) :
         self.__full_detail_dir_path = utility.full_dir(os.path.join(self.__full_out_dir_path, 'detail'))
 
         utility.check_exists(environment_script)
+
+        # the config script is copied to the output directory for persistency
+        #   and so that the jobs have a stable version
+        full_config_path = utility.full_file(config)
+        shutil.copy2(full_config_path, os.path.join(self.__full_detail_dir_path,'config.py'))
 
         super().__init__({
             'universe' : 'vanilla',
@@ -100,16 +138,6 @@ class JobInstructions(htcondor.Submit) :
         """
         self['next_job_start_delay'] = time
 
-    def config(self,conf) :
-        """Set the configuration script that these jobs should run.
-
-        We make a copy of the config and put it in the output
-        directory so that jobs can have a stable copy of it.
-        """
-
-        full_config_path = utility.full_file(conf)
-        shutil.copy2(full_config_path, os.path.join(self.__full_detail_dir_path,'config.py'))
-
     def periodic_release(self) :
         """Tell this HTCondor to release all jobs that returned an exit code of 99 and were then held.
 
@@ -123,12 +151,20 @@ class JobInstructions(htcondor.Submit) :
         self['periodic_release'] = '(HoldReasonSubCode == 99) && (HoldReasonCode == 3)'
 
     def save_output(self, out_dir) :
-        """Tell HTCondor to save the terminal output of **all** jobs in this batch to files in the input directory."""
+        """Tell HTCondor to save the terminal output of **all** jobs in this batch to files in the input directory.
+
+        Warnings
+        --------
+        This should only be used for debugging purposes.
+        This **will** overload the file system if you attempt to store the terminal
+        output of hundreds of jobs at once.
+        """
+
         terminal_output_file = os.path.join(full_dir(out_dir),'$(Cluster)-$(Process).out')
         self['output'] = terminal_output_file
         self['error' ] = terminal_output_file
 
-    def run_over_input_dirs(self, input_dirs, num_files_per_job, input_arg_name) :
+    def run_over_input_dirs(self, input_dirs, num_files_per_job) :
         """Have the config script run over num_files_per_job files taken from input_dirs, generating jobs
         until all of the files in input_dirs are included.
 
@@ -138,15 +174,13 @@ class JobInstructions(htcondor.Submit) :
             List of input directories to run over
         num_files_per_job : int
             Number of files for each job to have (maximum, could be less)
-        input_arg_name : str
-            Name of argument to give to python configuration before the list of files
         """
 
         if self.__items_to_loop_over is not None :
             raise Exception('Already defined how these jobs should run.')
     
         input_file_list = []
-        for input_dir in arg.input_dir :
+        for input_dir in input_dirs :
             # submitting the whole directory
             full_input_dir = utility.full_dir(input_dir,False)
             if 'hdfs' not in full_input_dir :
@@ -175,7 +209,26 @@ class JobInstructions(htcondor.Submit) :
         self.__items_to_loop_over = [{'input_files' : i} for i in partition(input_file_list, num_files_per_job)]
 
     def run_refill(self) :
-        """Get missing run numbers from output directory and submit those."""
+        """Get missing run numbers from output directory and submit those.
+
+        We determine the run numbers to submit by looking through the output directory
+        for any run numbers that are missing between the minimum and maximum run number.
+
+        Run numbers are determined from the file names.
+        The file names must match the following form:
+
+            <other-parameters>_run_<run-number>.root
+
+        For example
+
+            my_fancy_sample_run_0420.root
+
+        would produce a run number of '420', while
+
+            my_fancy_sample_run0420.root
+
+        would just be skipped.
+        """
 
         if self.__items_to_loop_over is not None :
             raise Exception('Already defined how these jobs should run.')
@@ -197,50 +250,76 @@ class JobInstructions(htcondor.Submit) :
         self.__items_to_loop_over = [{'run_number' : str(r)} for r in range(runs[0],runs[-1]+1) if r not in runs]
 
     def run_numbers(self, start, number):
-        """Run over iterated run numbers"""
+        """Run over iterated run numbers
+
+        We simply determine the run numbers by counting up from start
+        until we have a reached number of jobs.
+
+        Parameters
+        ----------
+        start : int
+            First run number to start on
+        number : int
+            Number of jobs to submit
+        """
 
         if self.__items_to_loop_over is not None :
             raise Exception('Already defined how these jobs should run.')
 
         self['arguments'] += ' $(run_number)'
-        self.__items_to_loop_over = [{'run_number' : str(r)} for r in range(start, start+number)]
+        self.__items_to_loop_over = [{'run_number' : str(r)} for r in xrange(start, start+number)]
 
     def _pause_before(next_thing) :
+        """Pause before the next thing and allow the user the option to exit the script."""
         answer = input('[Q/q+Enter] to quit or [Enter] to '+next_thing+'... ')
-        if answer.capitalize().startswith('Q') :
-            sys.exit()
+        return (not answer.capitalize().startswith('Q'))
 
     def __str__(self) :
-        """Return a printed version of this object."""
+        """Return a printed version of this object using htcondor.Submit"""
         return super().__str__()
 
     def _check(self) :
         """Print configuration to screen and pause for confirmation."""
 
         print(self)
-        JobInstructions._pause_before('see Queue-ing list')
+        if not JobInstructions._pause_before('see Queue-ing list') : return False
         print(self.__items_to_loop_over)
-        JobInstructions._pause_before('submit')
+        return True
 
     def _log_submission(self, f) :
-        """Log the job configurations to the input file (assumed open)"""
+        """Log the job configurations to the input file (assumed open)
+
+        Parameters
+        ----------
+        f : file
+            Open file to write our full submission log to
+        """
+
         print(self, file=f)
         f.write("\nFull List of Jobs:\n")
-        for j in self.jobs(itemdata=iter(self.__items_to_loop_over)) :
+        for j in self.jobs(itemdata=iter(self.__items_to_loop_over),clusterid=self.__cluster_id) :
             f.write(j.printJson())
             f.write('\n')
-    
-    def submit(self, check = True) :
+
+    def submit(self) :
         """Actually submit the job instructions to the batch system."""
-
-        if check :
-            self._check()
-
         schedd = htcondor.Schedd()
         with schedd.transaction() as txn :
           submit_result = self.queue_with_itemdata(txn, itemdata=iter(self.__items_to_loop_over))
-          print(f'Submitted to Cluster {submit_result.cluster()}')
-          with open(f'{self.__full_detail_dir_path}/submit.{submit_result.cluster()}.log','w') as log :
+          self.__cluster_id = submit_result.cluster()
+          print(f'Submitted to Cluster {self.__cluster_id}')
+          with open(f'{self.__full_detail_dir_path}/submit.{self.__cluster_id}.log','w') as log :
               self._log_submission(log)
 
+    def submit_interactive(self) :
+        """Submit to the batch system while checking with the user along the way"""
+
+        if not self._check() : return
+        if not JobInstructions._pause_before('submit') : return
+
+        self.submit()
+
+        if JobInstructions._pause_before('watch jobs') :
+            from umn_htcondor import manage
+            manage.watch_q()
     

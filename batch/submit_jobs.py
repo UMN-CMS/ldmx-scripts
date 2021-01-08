@@ -51,9 +51,9 @@ if arg.env_script is not None :
 else :
     env_script = '%s/stable-installs/%s/setup.sh'%(local_dir(),arg.ldmx_version)
 
-job_instructions = JobInstructions(arg.run_script, arg.out_dir, env_script, arg.input_arg_name, arg.config_args)
+job_instructions = JobInstructions(arg.run_script, arg.out_dir, env_script, arg.config, 
+    input_arg_name = arg.input_arg_name, extra_config_args = arg.config_args)
 
-job_instructions.config(arg.config)
 job_instructions.memory(arg.max_memory)
 job_instructions.nice(not arg.nonice)
 job_instructions.sleep(arg.sleep)
@@ -86,4 +86,7 @@ else :
     job_instructions.run_numbers(arg.start_job, arg.num_jobs)
 #input directory or not
 
-job_instructions.submit(not arg.nocheck)
+if arg.nocheck :
+    job_instructions.submit()
+else :
+    job_instructions.submit_interactive()

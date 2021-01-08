@@ -106,6 +106,25 @@ def print_q(extra_filters = True, o = sys.stdout) :
     Specialization of printing for what we care about.
     ClusterId, ProcId, Status, RunTime, and 
     the last argument given to the executable (either last input file or run number)
+
+    Parameters
+    ----------
+    extra_filters : classad.ExprTree, optional
+        Can do more filtering on what you want to see (default: True)
+    o : file
+        File to write to (default: sys.stdout)
+
+    Examples
+    --------
+    Just see your entire queue
+    >>> manage.print_q()
+
+    Only see the jobs that are currently running
+    >>> manage.print_q(utility.job_status_is_running())
+
+    Write your queue to a file.
+    >>> with open('queue.log','w') as queue_log :
+    ...     manage.print_q(extra_filters = True, o = queue_log)
     """
 
     o.write(f'Cluster.Proc : St : HH:MM:SS : Input\n')

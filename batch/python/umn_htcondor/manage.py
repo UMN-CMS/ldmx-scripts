@@ -291,3 +291,12 @@ def who() :
     held    = tots[2]
     print(f'{user:8}  {idle:4d} {running:4d} {held:4d}')
 
+def why_held() :
+    """Print list of exit codes on why jobs were held."""
+
+    codes = []
+    for j in _my_q(utility.job_status_is_held()) :
+        c = j["HoldReasonSubCode"]
+        if c not in codes: codes.append(c)
+
+    return codes

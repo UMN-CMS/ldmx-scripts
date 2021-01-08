@@ -66,7 +66,7 @@ def get_umn_host_name(full_machine_name) :
 
 def dont_use_machine(m) :
     """Don't use the input SPA machine for jobs."""
-    return classad.Attribute('Machine') != classad.quote(f'{m}.spa.umn.edu')
+    return classad.Attribute('Machine') != f'{m}.spa.umn.edu'
 
 def job_is_mine() :
     """Expression that is true when current user owns the job."""

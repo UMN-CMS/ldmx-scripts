@@ -108,7 +108,7 @@ def print_q(extra_filters = True, o = sys.stdout) :
     the last argument given to the executable (either last input file or run number)
     """
 
-    o.write(f'Cluster.Proc : St : HH:MM:SS : Input')
+    o.write(f'Cluster.Proc : St : HH:MM:SS : Input\n')
     for j in _my_q(extra_filters) :
         job_status = translate_job_status_enum(j['JobStatus'])
         if j['JobStatus'] == htcondor.JobStatus.IDLE :
@@ -121,7 +121,8 @@ def print_q(extra_filters = True, o = sys.stdout) :
             run_time %= 3600
             minutes = run_time // 60
             seconds = run_time % 60
-        o.write(f'{j["ClusterId"]:7}.{j["ProcId"]:<4} : {job_status:2} : {hours:02}:{minutes:02}:{seconds:02} : {j["Args"].split(" ")[-1]}')
+        o.write(f'{j["ClusterId"]:7}.{j["ProcId"]:<4} : {job_status:2} : {hours:02}:{minutes:02}:{seconds:02} : {j["Args"].split(" ")[-1]}\n')
+    o.flush()
 
 def get_q_totals() :
     """Print your current totals for idle, running, and held

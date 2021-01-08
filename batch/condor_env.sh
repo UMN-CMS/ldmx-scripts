@@ -19,30 +19,6 @@ alias my-q-totals='my-q -totals'
 # watch the job totals
 alias watch-q='watch condor_q -submitter $USER -totals'
 
-# From docs
-#   JobStatus | Value
-#   Idle      | 1
-#   Running   | 2
-#   Removing  | 3
-#   Completed | 4
-#   Held      | 5
-#   Transfer  | 6
-#   Suspended | 7
-# rm held jobs
-condor_rm_held() {
-  condor_rm -constraint 'JobStatus == 5'
-}
-
-# Release all jobs submitted by you
-alias release-me='condor_release $USER'
-
-# Get the list of uniq hosts from the input file of long condor logs
-#   e.g. my-q -long | uniq-hosts
-alias uniq-hosts='grep RemoteHost | sort -u | cut -d " " -f 3'
-
-# Get the list of unique hosts for all currently held jobs
-alias held-hosts='my-q -held -long | uniq-hosts'
-
 # Count the number of root files in the input directory
 file-count() {
   ls -f "$1" | wc -l

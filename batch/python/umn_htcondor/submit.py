@@ -104,12 +104,20 @@ class JobInstructions(htcondor.Submit) :
         self.__items_to_loop_over = None
 
     def memory(self,max_mem_str) :
-        """Set the max memory requested for these jobs"""
+        """Set the max memory requested for these jobs
+
+        See Also
+        --------
+        utility.convert_memory for how the input memory string is converted
+        """
 
         self['request_memory'] = utility.convert_memory(max_mem_str)
 
     def nice(self,be_nice) :
         """Set the nice-ness of these jobs
+
+        You should almost always be nice.
+        Every user of HTCondor has two "levels": nice and not-nice.
 
         Parameters
         ----------
@@ -134,7 +142,9 @@ class JobInstructions(htcondor.Submit) :
 
         It is helpful to have some lag time so that transferring large files
         or reading from executable files can happen without overloading
-        the filesystem.
+        the filesystem. 
+        
+        This generally doesn't need to be very long, only a few seconds.
         """
         self['next_job_start_delay'] = time
 
@@ -146,12 +156,26 @@ class JobInstructions(htcondor.Submit) :
         This is helpful for trying to get jobs that failed this way back into the submission queue.
         
         If a machine is not reconnected to hdfs/cvmfs automatically, you may with to ban it.
+
+        See Also
+        --------
+        ban_machine : Banning machines before submitting jobs
+        manage.ban_machine : Banning machines while they are idle/held
         """
 
-        self['periodic_release'] = '(HoldReasonSubCode == 99) && (HoldReasonCode == 3)'
+        self['periodic_release'] = (classad.Attribute('HoldReasonSubCode') == 99).and_(classad.Attribute('HoldReasonCode') == 3)
 
     def save_output(self, out_dir) :
         """Tell HTCondor to save the terminal output of **all** jobs in this batch to files in the input directory.
+
+        The files are named after the cluster and process id numbers of the jobs,
+        so if you submitted three jobs and got a cluster number of 999 back, the files
+        would be named 999-0.out, 999-1.out, and 999-2.out.
+
+        Parameters
+        ----------
+        out_dir : str
+            Path to directory where we should put the terminal output files
 
         Warnings
         --------
@@ -227,7 +251,11 @@ class JobInstructions(htcondor.Submit) :
 
             my_fancy_sample_run0420.root
 
-        would just be skipped.
+        would just be skipped and
+
+            my_fancy_sample_0420_run.root
+
+        would cause the python to error-out.
         """
 
         if self.__items_to_loop_over is not None :
@@ -247,7 +275,7 @@ class JobInstructions(htcondor.Submit) :
         runs.sort()
 
         self['arguments'] += ' $(run_number)'
-        self.__items_to_loop_over = [{'run_number' : str(r)} for r in range(runs[0],runs[-1]+1) if r not in runs]
+        self.__items_to_loop_over = [{'run_number' : str(r)} for r in xrange(runs[0],runs[-1]+1) if r not in runs]
 
     def run_numbers(self, start, number):
         """Run over iterated run numbers
@@ -275,7 +303,7 @@ class JobInstructions(htcondor.Submit) :
         return (not answer.capitalize().startswith('Q'))
 
     def __str__(self) :
-        """Return a printed version of this object using htcondor.Submit"""
+        """Return a printed version of this object using htcondor.Submit.__str__"""
         return super().__str__()
 
     def _check(self) :

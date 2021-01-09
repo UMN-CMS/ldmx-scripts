@@ -219,7 +219,7 @@ def hosts(held_only = False, running_only = False, extra_filters = True) :
     elif running_only :
         filters = utility.job_status_is_running()
     else :
-        filters = utility.job_status_is_held().and_(utility.job_status_is_running())
+        filters = utility.job_status_is_held().or_(utility.job_status_is_running())
 
     filters = filters.and_(extra_filters)
 

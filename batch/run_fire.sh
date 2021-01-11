@@ -48,9 +48,21 @@ then
   exit 115
 fi
 
-# mv all output root files to the output directory
-if ! mv *.root $_output_dir
-then
-  echo "Can't copy the output root files to the output directory (or couldn't find output files)."
-  exit 117
-fi
+# copy over each output file, checking to make sure it worked
+#   most of the time this is only one file, but sometimes
+#   we create both a event and a histogram file
+for output_file in *.root
+do
+  if ! cp $output_file $_output_dir; then
+    echo "Can't copy a output file to the output directory."
+    exit 117
+  fi
+  if ! cmp -s $output_file $_output_dir/$output_file; then
+    echo "Interrupted during copying!"
+    exit 118
+  fi
+  if ! rm $output_file; then
+    echo "Can't clean up after myself!"
+    exit 119
+  fi
+done

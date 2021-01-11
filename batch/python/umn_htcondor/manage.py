@@ -130,17 +130,22 @@ def print_q(extra_filters = True, o = sys.stdout) :
     o.write(f'Cluster.Proc : St : HH:MM:SS : Input\n')
     for j in _my_q(extra_filters) :
         job_status = translate_job_status_enum(j['JobStatus'])
-        if j['JobStatus'] == htcondor.JobStatus.IDLE :
-            hours = '--'
-            minutes = '--'
-            seconds = '--'
-        else :
+        if 'LastMatchTime' in j :
             run_time = j['ServerTime'] - j['LastMatchTime'] #in s
             hours = run_time // 3600
             run_time %= 3600
             minutes = run_time // 60
             seconds = run_time % 60
-        o.write(f'{j["ClusterId"]:7}.{j["ProcId"]:<4} : {job_status:2} : {hours:02}:{minutes:02}:{seconds:02} : {j["Args"].split(" ")[-1]}\n')
+        else :
+            hours   = '--'
+            minutes = '--'
+            seconds = '--'
+
+        last_arg = j["Args"].split(" ")[-1]
+        if not last_arg.isdigit() :
+            # last arg is file path, get basename
+            last_arg = last_arg.split("/")[-1]
+        o.write(f'{j["ClusterId"]:7}.{j["ProcId"]:<4} : {job_status:2} : {hours:02}:{minutes:02}:{seconds:02} : {last_arg}\n')
     o.flush()
 
 def get_q_totals() :
@@ -225,10 +230,9 @@ def hosts(held_only = False, running_only = False, extra_filters = True) :
 
     uniq_hosts = dict()
     for j in _my_q(filters) :
-        if j["JobStatus"] == htcondor.JobStatus.RUNNING :
-            the_host = j["RemoteHost"]
-        else :
-            the_host = j["LastRemoteHost"]
+        if 'LastRemoteHost' not in j : continue
+
+        the_host = j["LastRemoteHost"]
 
         the_host = utility.get_umn_host_name(the_host)
 

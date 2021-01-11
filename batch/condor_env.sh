@@ -36,3 +36,15 @@ missing-nums() {
 
 # Add our python modules to the PYTHONPATH to make things easier to run
 export PYTHONPATH=$PYTHONPATH:$LDMX_ENV_DIR/batch/python/
+
+# check that the input host has hdfs and cvmfs
+check-host() {
+  _host="$1"
+  echo -n "$_host..."
+  ssh $_host 'if [[ ! -d /cvmfs/cms.cern.ch || ! -d /hdfs/cms/user ]]; then echo "BAD"; else echo "GOOD"; fi'
+}
+
+# check all the scorpions
+check-scorpions() {
+  for scorpion in scorpion{1..50}; do check-host $scorpion; done
+}

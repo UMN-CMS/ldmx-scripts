@@ -40,10 +40,9 @@ fi
 
 _build_dir=build-$_install_name
 
-_stable_installs_dir=/local/cms/user/$USER/ldmx/stable-installs
-mkdir -p $_stable_installs_dir
+mkdir -p $LDMX_STABLE_INSTALLS
 
-_install_dir=$_stable_installs_dir/$_install_name
+_install_dir=$LDMX_STABLE_INSTALLS/$_install_name
 
 if ! mkdir $_build_dir
 then

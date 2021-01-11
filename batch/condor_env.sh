@@ -37,6 +37,9 @@ missing-nums() {
 # Add our python modules to the PYTHONPATH to make things easier to run
 export PYTHONPATH=$PYTHONPATH:$LDMX_ENV_DIR/batch/python/
 
+# define a helpful variable for make_stable.sh and accessing the stable installations
+export LDMX_STABLE_INSTALLS=$LDMX_BASE/stable-installs
+
 # check that the input host has hdfs and cvmfs
 check-host() {
   _host="$1"

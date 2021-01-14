@@ -275,7 +275,7 @@ class JobInstructions(htcondor.Submit) :
         runs.sort()
 
         self['arguments'] += ' $(run_number)'
-        self.__items_to_loop_over = [{'run_number' : str(r)} for r in xrange(runs[0],runs[-1]+1) if r not in runs]
+        self.__items_to_loop_over = [{'run_number' : str(r)} for r in range(runs[0],runs[-1]+1) if r not in runs]
 
     def run_numbers(self, start, number):
         """Run over iterated run numbers
@@ -295,7 +295,7 @@ class JobInstructions(htcondor.Submit) :
             raise Exception('Already defined how these jobs should run.')
 
         self['arguments'] += ' $(run_number)'
-        self.__items_to_loop_over = [{'run_number' : str(r)} for r in xrange(start, start+number)]
+        self.__items_to_loop_over = [{'run_number' : str(r)} for r in range(start, start+number)]
 
     def _pause_before(next_thing) :
         """Pause before the next thing and allow the user the option to exit the script."""

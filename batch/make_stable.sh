@@ -58,10 +58,7 @@ then
   exit 102
 fi
 
-cmake \
-  -DCMAKE_INSTALL_PREFIX=$_install_dir \
-  -DBOOST_ROOT=$BOOSTDIR \
-  ..
+cmake -DCMAKE_INSTALL_PREFIX=$_install_dir ..
 
 make -j6 install
 

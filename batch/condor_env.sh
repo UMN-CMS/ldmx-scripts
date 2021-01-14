@@ -8,6 +8,8 @@
 alias ldmx-make-stable='bash $LDMX_ENV_DIR/batch/make_stable.sh'
 
 # helpful alias for submitting batch jobs
+#   some weird condor configuration requires us to submit from scorpions
+#   so make sure to 'ssh scorpion1' before this
 alias ldmx-submit-jobs='python3 $LDMX_ENV_DIR/batch/submit_jobs.py'
 
 # look at my job listing

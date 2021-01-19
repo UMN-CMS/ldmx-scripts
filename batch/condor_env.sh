@@ -56,3 +56,20 @@ check-host() {
 check-scorpions() {
   for scorpion in scorpion{1..48}; do check-host $scorpion; done
 }
+
+# clean the host's /export/scratch/users directory by removing this user's working directory
+clean-host() {
+  _host="$1"
+  echo -n "$_host..."
+  if ! ssh -q $_host "cd /export/scratch/users; if [[ -d $USER ]]; then rm -r $USER; echo 'cleaned'; else echo 'No user dir'; fi"
+  then
+    echo "Can't connect"
+  fi
+}
+
+# clean all of the scorpions
+#   Don't run this while you have any jobs running!!!
+clean-scorpions() {
+  for scorpion in scorpion{1..48}; do clean-host $scorpion; done
+}
+

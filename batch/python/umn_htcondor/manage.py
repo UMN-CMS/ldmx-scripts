@@ -130,22 +130,22 @@ def print_q(extra_filters = True, o = sys.stdout) :
     o.write(f'Cluster.Proc : St : HH:MM:SS : Input\n')
     for j in _my_q(extra_filters) :
         job_status = translate_job_status_enum(j['JobStatus'])
-        if 'LastMatchTime' in j :
-            run_time = j['ServerTime'] - j['LastMatchTime'] #in s
+
+        if 'EnteredCurrentStatus' in j :
+            run_time = j['ServerTime'] - j['EnteredCurrentStatus'] #in s
             hours = run_time // 3600
             run_time %= 3600
             minutes = run_time // 60
             seconds = run_time % 60
+            time_str = f'{hours:02}:{minutes:02}:{seconds:02}'
         else :
-            hours   = '--'
-            minutes = '--'
-            seconds = '--'
+            time_str = '--:--:--'
 
         last_arg = j["Args"].split(" ")[-1]
         if not last_arg.isdigit() :
             # last arg is file path, get basename
             last_arg = last_arg.split("/")[-1]
-        o.write(f'{j["ClusterId"]:7}.{j["ProcId"]:<4} : {job_status:2} : {hours:02}:{minutes:02}:{seconds:02} : {last_arg}\n')
+        o.write(f'{j["ClusterId"]:7}.{j["ProcId"]:<4} : {job_status:2} : {time_str} : {last_arg}\n')
     o.flush()
 
 def get_q_totals() :
@@ -195,7 +195,7 @@ def watch_q(refresh_period = 10) :
             sys.stdout.flush()
             break
 
-def hosts(held_only = False, running_only = False, extra_filters = True) :
+def hosts(extra_filters = True) :
     """Return the list of unique hosts that are being used.
 
     We remove the slot numbers in favor of a raw count,
@@ -213,26 +213,20 @@ def hosts(held_only = False, running_only = False, extra_filters = True) :
     >>> manage.hosts()
 
     To get the hosts only for running jobs
-    >>> manage.hosts(running_only = True)
+    >>> manage.hosts(utility.job_status_is_running())
 
     To get the hosts only for held jobs
-    >>> manage.hosts(held_only = True)
+    >>> manage.hosts(utility.job_status_is_held())
     """
 
-    if held_only :
-        filters = utility.job_status_is_held()
-    elif running_only :
-        filters = utility.job_status_is_running()
-    else :
-        filters = utility.job_status_is_held().or_(utility.job_status_is_running())
-
-    filters = filters.and_(extra_filters)
-
     uniq_hosts = dict()
-    for j in _my_q(filters) :
-        if 'LastRemoteHost' not in j : continue
-
-        the_host = j["LastRemoteHost"]
+    for j in _my_q(extra_filters) :
+        if 'LastRemoteHost' in j :
+            the_host = j["LastRemoteHost"]
+        elif 'RemoteHost' in j :
+            the_host = j['RemoteHost']
+        else :
+            continue
 
         the_host = utility.get_umn_host_name(the_host)
 

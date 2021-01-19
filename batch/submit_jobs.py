@@ -39,8 +39,9 @@ parser.add_argument("--nocheck",action='store_true',help="Don't pause to look at
 parser.add_argument("--test",action='store_true',help="Just print Job details to terminal, don't actually submit.")
 parser.add_argument("--save_output",type=str,help="Save terminal output to the input directory. Only use for debugging purposes. This can over-burden the filesystem is used with too many (>10) jobs.")
 parser.add_argument("--nonice",action='store_true',dest="nonice",help="Do not run this at nice priority.")
-parser.add_argument("--sleep",type=int,help="Time in seconds to sleep before starting the next job.",default=2)
-parser.add_argument("--max_memory",type=str,default='4G',help='Maximum amount of memory to give jobs. If \'G\' is the last character, assume GB, othersie assume MB and convert to integer.')
+parser.add_argument("--sleep",type=int,help="Time in seconds to sleep before starting the next job.",default=5)
+parser.add_argument("--max_memory",type=str,default='4G',help='Maximum amount of memory to give jobs. Can use \'K\', \'M\', \'G\' as suffix specifiers.')
+parser.add_argument("--max_disk",type=str,default='4G',help='Maximum amount of disk space to give jobs. Can use \'K\', \'M\', \'G\' as suffix specifiers.')
 parser.add_argument("--periodic_release",action='store_true',help="Periodically release any jobs that exited because the worker node was not connected to cvmfs or hdfs.")
 parser.add_argument("--broken_machines",type=str,nargs='+',default=[],help="Extra list of machines that should be avoided, usually because they are not running your jobs for whatever reason. For example: --broken_machines scorpion34 scorpion17")
 
@@ -55,6 +56,7 @@ job_instructions = JobInstructions(arg.run_script, arg.out_dir, env_script, arg.
     input_arg_name = arg.input_arg_name, extra_config_args = arg.config_args)
 
 job_instructions.memory(arg.max_memory)
+job_instructions.disk(arg.max_disk)
 job_instructions.nice(not arg.nonice)
 job_instructions.sleep(arg.sleep)
 

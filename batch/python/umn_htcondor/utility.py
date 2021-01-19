@@ -13,15 +13,6 @@ def local_dir() :
     """Get the current users ldmx directory in local"""
     return f'/local/cms/user/{getpass.getuser()}/ldmx'
 
-def convert_memory(mem_str) :
-    """Convert <mem>G or <mem> to mega-bytes integer."""
-
-    if mem_str.endswith('G') :
-        mem_str = mem_str[:-1]
-        return 1024*int(mem_str)
-    else :
-        return int(mem_str)
-
 def check_exists(path) :
     """Check that the input path exists on the file system.
 
@@ -67,6 +58,10 @@ def get_umn_host_name(full_machine_name) :
 def dont_use_machine(m) :
     """Don't use the input SPA machine for jobs."""
     return classad.Attribute('Machine') != f'{m}.spa.umn.edu'
+
+def use_machine(m) :
+    """Specify the input SPA machine to be used for jobs."""
+    return classad.Attribute('Machine') == f'{m}.spa.umn.edu'
 
 def job_is_mine() :
     """Expression that is true when current user owns the job."""

@@ -43,6 +43,12 @@ class JobInstructions(htcondor.Submit) :
         List of dictionaries defining the variables condor should loop over when submitting the jobs
     __cluster_id : int
         ID number for cluster these job instructions were submitted as (0 if not submitted yet)
+
+    Warnings
+    --------
+    Currently, we are limited to running ~100 jobs simultaneously
+    so that we don't overload the /local/ filesystem. There are 16 slots
+    on each scorpion so that means we should limit ourselves to 5-6 scorpions.
     """
 
     def __init__(self,
@@ -86,20 +92,25 @@ class JobInstructions(htcondor.Submit) :
             #   the other variable names are ours and can be changed and used in the rest of this file
             'output_dir' : self.__full_out_dir_path,
             'env_script' : environment_script,
-            'scratch_root' : f'/export/scratch/users/{getpass.getuser()}',
             # assume config script is in output directory
             'config_script' : '$(output_dir)/detail/config.py',
             'executable' : utility.full_file(executable_path),
+            # Pass the username through the environment, so the bash script can use $USER
+            'environment' : classad.quote(f'USER={getpass.getuser()}'),
             # This needs to match the correct order of the arguments in the run_fire.sh script
             #   The input file and any extra config arguments are optional and come after the
             #   three required arguments
             # We will be adding to this entry in the dictionary as we determine arguments to the config script
-            'arguments' : f'$(scratch_root)/$(Cluster)-$(Process) $(env_script) $(config_script) $(output_dir) {extra_config_args} {input_arg_name}'
+            'arguments' : f'$(Cluster)-$(Process) $(env_script) $(config_script) $(output_dir) {extra_config_args} {input_arg_name}'
           })
 
-        self['requirements'] = utility.dont_use_machine('caffeine')
-        for m in ['zebra01','zebra02','zebra03','zebra04'] :
-            self.ban_machine(m)            
+        # Look at "Warnings" comment for information about why we are doing the below
+#        self['requirements'] = utility.dont_use_machine('caffeine')
+#        for m in ['zebra01','zebra02','zebra03','zebra04'] :
+#            self.ban_machine(m)            
+        self['requirements'] = utility.use_machine('scorpion2')
+        for m in ['scorpion3','scorpion4','scorpion5','scorpion6'] :
+            self['requirements'] = classad.ExprTree(self['requirements']).or_(utility.use_machine(m))
 
         self.__items_to_loop_over = None
 
@@ -108,10 +119,22 @@ class JobInstructions(htcondor.Submit) :
 
         See Also
         --------
-        utility.convert_memory for how the input memory string is converted
+        https://htcondor.readthedocs.io/en/latest/man-pages/condor_submit.html#submit-description-file-commands
+        for what the allowed strings are
         """
 
-        self['request_memory'] = utility.convert_memory(max_mem_str)
+        self['request_memory'] = max_mem_str
+
+    def disk(self, max_disk_str) :
+        """Set the maximum amount of disk space requested for these jobs
+
+        See Also
+        --------
+        https://htcondor.readthedocs.io/en/latest/man-pages/condor_submit.html#submit-description-file-commands
+        for what the allowed strings are
+        """
+
+        self['request_disk'] = max_disk_str
 
     def nice(self,be_nice) :
         """Set the nice-ness of these jobs

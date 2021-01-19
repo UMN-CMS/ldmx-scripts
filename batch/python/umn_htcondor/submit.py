@@ -104,13 +104,9 @@ class JobInstructions(htcondor.Submit) :
             'arguments' : f'$(Cluster)-$(Process) $(env_script) $(config_script) $(output_dir) {extra_config_args} {input_arg_name}'
           })
 
-        # Look at "Warnings" comment for information about why we are doing the below
-#        self['requirements'] = utility.dont_use_machine('caffeine')
-#        for m in ['zebra01','zebra02','zebra03','zebra04'] :
-#            self.ban_machine(m)            
-        self['requirements'] = utility.use_machine('scorpion2')
-        for m in ['scorpion3','scorpion4','scorpion5','scorpion6'] :
-            self['requirements'] = classad.ExprTree(self['requirements']).or_(utility.use_machine(m))
+        self['requirements'] = utility.dont_use_machine('caffeine')
+        for m in ['zebra01','zebra02','zebra03','zebra04'] :
+            self.ban_machine(m)            
 
         self.__items_to_loop_over = None
 
@@ -159,6 +155,16 @@ class JobInstructions(htcondor.Submit) :
         """
 
         self['requirements'] = classad.ExprTree(self['requirements']).and_(utility.dont_use_machine(m))
+
+    def use_machine(self,m) :
+        """Specifically request that the jobs run on the input machine.
+
+        We assume that the other requires should be logical or'd with
+        this requirement so that multiple calls to this function specify
+        a list of machine to use.
+        """
+
+        self['requirements'] = classad.ExprTree(self['requirements']).or_(utility.use_machine(m))
 
     def sleep(self,time) :
         """Sleep for the input number of seconds between starting jobs.

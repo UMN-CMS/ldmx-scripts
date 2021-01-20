@@ -106,7 +106,6 @@ do
     # Coulding copy after trying 10 times, waiting
     #   30s between each try.
     echo "Copying failed after several tries."
-    clean-up
     exit 118
   fi
 done

@@ -73,3 +73,8 @@ clean-scorpions() {
   for scorpion in scorpion{1..48}; do clean-host $scorpion; done
 }
 
+# List jobs that failed to copy
+failed-copy() {
+  my-q -held -constraint 'HoldReasonSubCode == 118' $@
+}
+

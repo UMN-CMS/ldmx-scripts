@@ -44,6 +44,7 @@ parser.add_argument("--max_memory",type=str,default='4G',help='Maximum amount of
 parser.add_argument("--max_disk",type=str,default='4G',help='Maximum amount of disk space to give jobs. Can use \'K\', \'M\', \'G\' as suffix specifiers.')
 parser.add_argument("--periodic_release",action='store_true',help="Periodically release any jobs that exited because the worker node was not connected to cvmfs or hdfs.")
 parser.add_argument("--broken_machines",type=str,nargs='+',default=[],help="Extra list of machines that should be avoided, usually because they are not running your jobs for whatever reason. For example: --broken_machines scorpion34 scorpion17")
+parser.add_argument("--check_n_pick",action='store_true',help='Loop through the scorpions and ban any machines that arent connected to cvmfs or hdfs.')
 
 arg = parser.parse_args()
 
@@ -59,6 +60,13 @@ job_instructions.memory(arg.max_memory)
 job_instructions.disk(arg.max_disk)
 job_instructions.nice(not arg.nonice)
 job_instructions.sleep(arg.sleep)
+
+if arg.check_n_pick :
+    check_cmd = "'if [[ -d /cvmfs/cms.cern.ch && -d /hdfs/cms/user ]]; then exit 0; else exit 1; fi'"
+    for s in range(1,49) :
+        host = f'scorpion{s}'
+        if os.system(f'ssh -q {host} {check_cmd}' ) != 0 :
+            job_instructions.ban_machine(host)
 
 # Add additional machines to avoid using
 for m in arg.broken_machines :

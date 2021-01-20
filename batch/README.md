@@ -3,6 +3,8 @@ This directory contains the basic files you need to submit batch jobs to UMN thr
 In order to run batch jobs, there is a series of set-up steps that are necessary.
 To get access to the pre-defined bash aliases after source the LDMX environment script, run `ldmx-condor-env` to import those commands.
 
+**Note**: The currently documented use case where ldmx-sw and some of its custom dependencies are installed on `/local/` has a major flaw. If the number of jobs using this method goes above ~100, the `/local/` filesystem starts to get overloaded and computers slow way down. With that in mind, a medium-term (but less flexible) method is being implemented where ldmx-sw and its dependencies are installed in `/export/scratch/` and manually copied to the other worker nodes.
+
 In this document and the source files themselves, I use a few short-hand phrases to refer to specific things.
 
 - `$USER` is your username. I use this shorthand because that is how it is stored in `bash`. In Python, you can get the username of whoever is running the script with `os.environ['USER']`.

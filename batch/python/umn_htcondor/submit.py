@@ -213,7 +213,7 @@ class JobInstructions(htcondor.Submit) :
         output of hundreds of jobs at once.
         """
 
-        terminal_output_file = os.path.join(full_dir(out_dir),'$(Cluster)-$(Process).out')
+        terminal_output_file = os.path.join(utility.full_dir(out_dir),'$(Cluster)-$(Process).out')
         self['output'] = terminal_output_file
         self['error' ] = terminal_output_file
 

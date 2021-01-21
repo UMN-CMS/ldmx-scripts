@@ -29,14 +29,14 @@ source container/container_env.sh
 
 **Boost**
 ```
-cd /local/cms/user/eichl008/boost/boost_1_72_0
+cd /local/cms/user/eichl008/boost/boost_1_72_0 #or another Boost1.67+ source directory
 ./bootstrap.sh --prefix=$LDMX_CONTAINER_DIR/boost
 ./b2 install
 ```
 
 **Python**
 ```
-cd /local/cms/user/eichl008/python/Python-3.8.3
+cd /local/cms/user/eichl008/python/Python-3.8.3 #or another Python3 source directory
 ./configure.sh \
   --enable-shared \
   --enable-optimizations \
@@ -51,8 +51,8 @@ python3 -m pip install -U numpy
 - We put the large data files onto `/hdfs` because those files are read-only and can be shared across several Geant4 versions
 
 ```
-cd /local/cms/user/eichl008/geant4/geant4.10.02.p03_v0.3
-rm -rf build
+cd /local/cms/user/eichl008/geant4/geant4.10.02.p03_v0.3 #or another geant4 source directory
+rm -rf build-for-container #if exists
 cmake \
     -DCMAKE_INSTALL_PREFIX=$LDMX_CONTAINER_DIR/geant4 \
     -DGEANT4_INSTALL_DATADIR=/hdfs/cms/user/eichl008/geant4/data \
@@ -62,10 +62,10 @@ cmake \
     -DGEANT4_USE_OPENGL_X11=ON \
     -DGEANT4_USE_SYSTEM_EXPAT=OFF \
     -DGEANT4_INSTALL_EXAMPLES=OFF \
-    -B build
+    -B build-for-container \
     -S .
 cmake \
-  --build build \
+  --build build-for-container \
   --target install \
   -- -j4
 ```
@@ -73,19 +73,17 @@ cmake \
 **Root**
 
 ```
-cd /local/cms/user/eichl008/root/
 cmake \
-    -DCMAKE_INSTALL_PREFIX=/export/scratch/users/eichl008/ldmx-container/root \
+    -DCMAKE_INSTALL_PREFIX=$LDMX_CONTAINER_DIR/root \
     -DPYTHON_EXECUTABLE=`which python3` \
     -DPYTHON_LIBS=$PYTHONHOME/lib \
-    -Dgdml=ON \
-    -Dxrootd=OFF \
-    -Dvdt=OFF \
+    -Dminimal=ON \
+    -Dpyroot=ON \
     -DCMAKE_CXX_STANDARD=17 \
-    -S root-6-22-08 \
-    -B root-6-22-08-build
+    -S root-6.22.06 \ #or any other root source directory
+    -B root-6.22.06-build
 cmake \
-  --build root-6-22-08-build \
+  --build root-6.22.06-build \
   --target install \
   -- -j4
 ```
@@ -94,22 +92,30 @@ cmake \
  
 ```
 cd ldmx-sw
-rm -rf scratch-build
-mkdir scratch-build
-cd scratch-build
-cmake -DCMAKE_INSTALL_PREFIX=$LDMX_CONTAINER_DIR/ldmx-sw/ ..
-make -j4 install
+rm -rf build-for-container #if exists already
+cmake \
+  -DCMAKE_INSTALL_PREFIX=$LDMX_CONTAINER_DIR/ldmx-sw/ \
+  -B build-for-container \
+  -S . 
+cmake \
+  --build build-for-contianer \
+  --target install \
+  -- -j4
 ```
 
 **ldmx-analysis**
 
 ```
 cd ldmx-analysis
-rm -rf scratch-build
-mkdir scratch-build
-cd scratch-build
-cmake -DLDMXSW_INSTALL_PREFIX=$LDMX_INSTALL_PREFIX ..
-make -j4 install
+rm -rf build-for-container #if exists already
+cmake \
+  -DLDMXSW_INSTALL_PREFIX=$LDMX_INSTALL_PREFIX \
+  -B build-for-container \
+  -S .
+cmake \
+  --build build-for-container \
+  --target install \
+  -- -j4
 ```
 
 ### Deployment

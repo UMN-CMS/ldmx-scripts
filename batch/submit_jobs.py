@@ -19,7 +19,6 @@ parser.add_argument("-o",metavar='OUT_DIR',dest='out_dir',required=True,type=str
 environment = parser.add_mutually_exclusive_group(required=True)
 environment.add_argument('-e',metavar='ENV_SCRIPT',dest='env_script',type=str,help="Environment script to run before running fire.")
 environment.add_argument('-l',metavar='LDMX_VERSION',dest='ldmx_version',type=str,help="LDMX Version to pick a pre-made environment script.")
-environment.add_argument('--from_scratch',action='store_true',help='Use the "container" installed in /export/scratch.')
 
 how_many_jobs = parser.add_mutually_exclusive_group(required=True)
 how_many_jobs.add_argument('-i',metavar='INPUT_DIR',dest='input_dir',type=str,nargs='+',help="Directory containing input files to run over. If the path given is relative (i.e. does not begin with '/'), then we assume it is relative to your hdfs directory: %s"%hdfs_dir())
@@ -44,25 +43,20 @@ parser.add_argument("--sleep",type=int,help="Time in seconds to sleep before sta
 parser.add_argument("--max_memory",type=str,default='4G',help='Maximum amount of memory to give jobs. Can use \'K\', \'M\', \'G\' as suffix specifiers.')
 parser.add_argument("--max_disk",type=str,default='4G',help='Maximum amount of disk space to give jobs. Can use \'K\', \'M\', \'G\' as suffix specifiers.')
 parser.add_argument("--periodic_release",action='store_true',help="Periodically release any jobs that exited because the worker node was not connected to cvmfs or hdfs.")
-parser.add_argument("--broken_machines",type=str,nargs='+',default=[],help="Extra list of machines that should be avoided, usually because they are not running your jobs for whatever reason. For example: --broken_machines scorpion34 scorpion17")
-parser.add_argument("--check_n_pick",action='store_true',help='Loop through the scorpions and ban any machines that arent connected to cvmfs or hdfs.')
+
+machine_choice = parser.add_mutually_exclusive_group()
+machine_choice.add_argument("--broken_machines",type=str,nargs='+',help="Extra list of machines that should be avoided, usually because they are not running your jobs for whatever reason. For example: --broken_machines scorpion34 scorpion17")
+machine_choice.add_argument("--useable_machines",type=str,nargs='+',help="List of machines that should be used, no other machines are allowed. For example: --useable_machines scorpion{1..9}")
+machine_choice.add_argument("--check_n_pick",action='store_true',help='Loop through the scorpions and ban any machines that arent connected to cvmfs or hdfs.')
 
 arg = parser.parse_args()
 
-if arg.from_scratch :
-    if 'LDMX_CONTAINER_DIR' not in os.environ :
-        parser.error("Must have 'LDMX_CONTAINER_DIR' defined in environment to use --from_scratch.")
-    env_script = f'{os.environ["LDMX_CONTAINER_DIR"]}/setup.sh'
-elif arg.env_script is not None :
+if arg.env_script is not None :
     env_script = os.path.realpath(arg.env_script)
 else :
     env_script = '%s/stable-installs/%s/setup.sh'%(local_dir(),arg.ldmx_version)
 
-run_script = arg.run_script
-if arg.from_scratch :
-    run_script = f'{os.environ["LDMX_CONTAINER_DIR"]}/run_fire.sh'
-
-job_instructions = JobInstructions(run_script, arg.out_dir, env_script, arg.config, 
+job_instructions = JobInstructions(arg.run_script, arg.out_dir, env_script, arg.config, 
     input_arg_name = arg.input_arg_name, extra_config_args = arg.config_args)
 
 job_instructions.memory(arg.max_memory)
@@ -76,10 +70,15 @@ if arg.check_n_pick :
         host = f'scorpion{s}'
         if os.system(f'ssh -q {host} {check_cmd}') != 0 :
             job_instructions.ban_machine(host)
-
-# Add additional machines to avoid using
-for m in arg.broken_machines :
-    job_instructions.ban_machine(m)
+elif arg.broken_machines is not None :
+    # Add additional machines to avoid using
+    for m in arg.broken_machines :
+        job_instructions.ban_machine(m)
+elif arg.useable_machines is not None :
+    # Reset requirements
+    job_instructions['requirements'] = 'False'
+    for m in arg.useable_machines :
+        job_instructions.use_machine(m)
 
 # run_fire.sh exits with code 99 if the worker is not connected to cvmfs or hdfs
 #   in this case, we want to retry and hopefully find a worker that is correctly connected

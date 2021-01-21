@@ -74,3 +74,5 @@ ldmx-remake() {
 # setup the condor batch environemtn
 alias ldmx-condor-env='source $LDMX_ENV_DIR/batch/condor_env.sh'
 
+# setup the container environment
+alias ldmx-container-env='source $LDMX_ENV_DIR/container/container_env.sh'

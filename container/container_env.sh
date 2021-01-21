@@ -4,7 +4,7 @@
 # Setup "Container" environment for ldmx-sw
 ################################################################################
 
-# Setup
+# Setup dependencies, point everything to the installs in the "container"
 source $LDMX_ENV_DIR/container/setup.sh
 
 # Pack container currently in LDMX_CONTAINER_DIR

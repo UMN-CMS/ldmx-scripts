@@ -22,7 +22,11 @@ cd /local/cms/user/eichl008/boost/boost_1_72_0
 **Python**
 ```
 cd /local/cms/user/eichl008/python/Python-3.8.3
-./configure.sh --enable-optimizations --with-ensurepip=install --prefix=/export/scratch/users/eichl008/ldmx-container/python
+./configure.sh \
+  --enable-shared \
+  --enable-optimizations \
+  --with-ensurepip=install \
+  --prefix=/export/scratch/users/eichl008/ldmx-container/python
 make -j4 install
 export PYTHONHOME=/export/scratch/users/eichl008/ldmx-container/python
 python3 -m pip install -U numpy
@@ -69,6 +73,7 @@ ldmx-env-source $GCCDIR                         #gcc
 **Geant4**
 
 - (above) Need to source necessary cvmfs init.sh scripts before this one.
+- We put the large data files onto `/hdfs` because those files are read-only and can be shared across several Geant4 versions
 
 ```
 cd /local/cms/user/eichl008/geant4/geant4.10.02.p03_v0.3
@@ -87,7 +92,7 @@ cmake \
 cmake \
   --build build \
   --target install \
-  -- -j3
+  -- -j4
 ```
 
 **Root**
@@ -97,9 +102,8 @@ cmake \
 
 ```
 cd /local/cms/user/eichl008/root/
-rm -rf build
-mkdir build
-cd build
+rm -rf scratch-build
+mkdir scratch-build
 cmake \
     -DCMAKE_INSTALL_PREFIX=/export/scratch/users/eichl008/ldmx-container/root \
     -DPYTHON_EXECUTABLE=`which python3` \
@@ -108,7 +112,56 @@ cmake \
     -Dxrootd=OFF \
     -Dvdt=OFF \
     -DCMAKE_CXX_STANDARD=17 \
-    ../root
-make install
+    -B scratch-build
+    -S root
+cmake \
+  --build scratch-build \
+  --target install \
+  -- -j4
 ```
 
+**ldmx-sw**
+ 
+- Use the scratch install setup script included here
+
+```
+source batch/scratch-install-setup.sh
+cd ldmx-sw
+rm -rf scratch-build
+mkdir scratch-build
+cd scratch-build
+cmake -DCMAKE_INSTALL_PREFIX=$LDMX_CONTAINER_DIR/ldmx-sw/ ..
+make -j4 install
+```
+
+**ldmx-analysis**
+
+```
+source batch/scratch-install-setup.sh
+cd ldmx-analysis
+rm -rf scratch-build
+mkdir scratch-build
+cd scratch-build
+cmake -DLDMXSW_INSTALL_PREFIX=$LDMX_INSTALL_PREFIX ..
+make -j4 install
+```
+
+### Deployment
+After doing all of the installation steps above and then testing to make sure ldmx-sw still works, 
+we can deploy this "container" to the worker nodes by copying the scratch directory to them.
+The "copying" of the "container" directory is done in a somewhat round-about way so that
+we can avoid re-compiling this in the future if the scratch directory is cleaned.
+
+**Warnings**
+- This takes up a lot of space on the scratch directory (~1.5G of the 10G).
+- This does not allow for more than one version of ldmx-sw to be running at once.
+- This can be easily broken by routine cleaning of the scratch directories.
+
+```
+cd /export/scratch/users/eichl008
+tar czvf /local/cms/user/eichl008/ldmx/ldmx-container.tar.gz ldmx-container/
+for s in {1..48}
+do
+  ssh scorpion${s} 'cd /export/scratch/users/eichl008; tar xzf /local/cms/user/eichl008/ldmx/ldmx-container.tar.gz'
+done
+```

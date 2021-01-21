@@ -19,6 +19,7 @@ parser.add_argument("-o",metavar='OUT_DIR',dest='out_dir',required=True,type=str
 environment = parser.add_mutually_exclusive_group(required=True)
 environment.add_argument('-e',metavar='ENV_SCRIPT',dest='env_script',type=str,help="Environment script to run before running fire.")
 environment.add_argument('-l',metavar='LDMX_VERSION',dest='ldmx_version',type=str,help="LDMX Version to pick a pre-made environment script.")
+environment.add_argument('--from_scratch',action='store_true',help='Use the "container" installed in /export/scratch.')
 
 how_many_jobs = parser.add_mutually_exclusive_group(required=True)
 how_many_jobs.add_argument('-i',metavar='INPUT_DIR',dest='input_dir',type=str,nargs='+',help="Directory containing input files to run over. If the path given is relative (i.e. does not begin with '/'), then we assume it is relative to your hdfs directory: %s"%hdfs_dir())
@@ -48,12 +49,20 @@ parser.add_argument("--check_n_pick",action='store_true',help='Loop through the 
 
 arg = parser.parse_args()
 
-if arg.env_script is not None :
+if arg.from_scratch :
+    if 'LDMX_CONTAINER_DIR' not in os.environ :
+        parser.error("Must have 'LDMX_CONTAINER_DIR' defined in environment to use --from_scratch.")
+    env_script = f'{os.environ["LDMX_CONTAINER_DIR"]}/setup.sh'
+elif arg.env_script is not None :
     env_script = os.path.realpath(arg.env_script)
 else :
     env_script = '%s/stable-installs/%s/setup.sh'%(local_dir(),arg.ldmx_version)
 
-job_instructions = JobInstructions(arg.run_script, arg.out_dir, env_script, arg.config, 
+run_script = arg.run_script
+if arg.from_scratch :
+    run_script = f'{os.environ["LDMX_CONTAINER_DIR"]}/run_fire.sh'
+
+job_instructions = JobInstructions(run_script, arg.out_dir, env_script, arg.config, 
     input_arg_name = arg.input_arg_name, extra_config_args = arg.config_args)
 
 job_instructions.memory(arg.max_memory)
@@ -62,10 +71,10 @@ job_instructions.nice(not arg.nonice)
 job_instructions.sleep(arg.sleep)
 
 if arg.check_n_pick :
-    check_cmd = "'if [[ -d /cvmfs/cms.cern.ch && -d /hdfs/cms/user ]]; then exit 0; else exit 1; fi'"
+    check_cmd = "'if [[ -d /cvmfs/cms.cern.ch && -d /hdfs/cms/user && -f %s/setup.sh ]]; then exit 0; else exit 1; fi'"%os.environ["LDMX_CONTAINER_DIR"]
     for s in range(1,49) :
         host = f'scorpion{s}'
-        if os.system(f'ssh -q {host} {check_cmd}' ) != 0 :
+        if os.system(f'ssh -q {host} {check_cmd}') != 0 :
             job_instructions.ban_machine(host)
 
 # Add additional machines to avoid using

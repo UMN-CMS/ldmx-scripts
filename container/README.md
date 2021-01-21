@@ -147,21 +147,41 @@ make -j4 install
 ```
 
 ### Deployment
+
 After doing all of the installation steps above and then testing to make sure ldmx-sw still works, 
 we can deploy this "container" to the worker nodes by copying the scratch directory to them.
 The "copying" of the "container" directory is done in a somewhat round-about way so that
 we can avoid re-compiling this in the future if the scratch directory is cleaned.
+Additionally, we can save space on the worker nodes by only including the files we
+need for running (`lib` s, `bin` s, the detector description, batch setup and running scripts, and root/ldmx-sw includes for ROOT dictionaries).
 
 **Warnings**
 - This takes up a lot of space on the scratch directory (~1.5G of the 10G).
 - This does not allow for more than one version of ldmx-sw to be running at once.
 - This can be easily broken by routine cleaning of the scratch directories.
 
+Hopefully, updating the container ldmx-sw will mean only having to re-install ldmx-sw, re-make the archive, and then force unpack it, but we shall see.
+
 ```
-cd /export/scratch/users/eichl008
-tar czvf /local/cms/user/eichl008/ldmx/ldmx-container.tar.gz ldmx-container/
+cd <this-repository>/batch
+source scratch-install-setup.sh
+cp scratch-install-setup $LDMX_CONTAINER_DIR/setup.sh
+cp run_fire.sh $LDMX_CONTAINER_DIR/run_fire.sh
+cd $LDMX_CONTAINER_DIR/../
+find ldmx-container/ \
+  -path "*/lib*" -o \
+  -path "*/bin*" -o \
+  -path "*root/include*" -o \
+  -path "*root/etc*" -o \
+  -path "*ldmx-sw/include*" -o \
+  -path "*ldmx-sw/python*" -o \
+  -path "*ldmx-det-v12*" -o \
+  -path "*fieldmap*" -o \
+  -name "setup.sh" -o \
+  -name "run_fire.sh" | tar czvf ldmx-container.tar.gz -T -
+mv ldmx-container.tar.gz /hdfs/cms/user/eichl008/ldmx/
 for s in {1..48}
 do
-  ssh scorpion${s} 'cd /export/scratch/users/eichl008; tar xzf /local/cms/user/eichl008/ldmx/ldmx-container.tar.gz'
+  ssh scorpion${s} 'cd /export/scratch/users/eichl008; tar xzf /hdfs/cms/user/eichl008/ldmx/ldmx-container.tar.gz'
 done
 ```

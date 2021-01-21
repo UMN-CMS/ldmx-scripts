@@ -1,5 +1,12 @@
 # Install ldmx-sw and Its Dependencies in /export/scratch
 
+Here we mimic using a container.
+Our "container" only works if worker node has the same OS, connection to cvmfs, and
+we unpack the container in the exact same file-system location.
+I have chosen `/export/scratch/users/eichl008/ldmx-container` as the "root" container directory
+because the different machines have different `/export/scratch` mounts so we don't overload
+the filesystem _and_ I have access to write onto all of these scratch mounts.
+
 ### Why?
 Having the ldmx-sw libraries installed in /local quickly overloads the filesystem when attempting 
 to scale up the number of parallel jobs running. 

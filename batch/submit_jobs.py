@@ -29,19 +29,17 @@ how_many_jobs.add_argument('-r','--refill',dest='refill',action='store_true',hel
 parser.add_argument("--input_arg_name",type=str,default='',help='Name of argument that should go before the input file or run number when passing it to the config script.')
 parser.add_argument("--start_job",type=int,default=0,help="Starting number to use when run numbers. Only used if NOT running over items in a directory.")
 parser.add_argument("--files_per_job",type=int,default=10,help="If running over an input directory, this argument defines how many files to group together per job.")
-parser.add_argument("--max_num_jobs",type=int,default=1000,help="If running over an input directory, this argument defines the maximum number of jobs to submit at once.")
 
 # rarely-used optional args
 full_path_to_dir_we_are_in=os.path.dirname(os.path.realpath(__file__))
 parser.add_argument("--run_script",type=str,help="Script to run jobs on worker nodes with.",default='%s/run_fire.sh'%full_path_to_dir_we_are_in)
 parser.add_argument("--config_args",type=str,default='',help="Extra arguments to be passed to the configuration script. Passed after the run_number or input_file.")
 parser.add_argument("--nocheck",action='store_true',help="Don't pause to look at job details before submitting.")
-parser.add_argument("--test",action='store_true',help="Just print Job details to terminal, don't actually submit.")
 parser.add_argument("--save_output",type=str,help="Save terminal output to the input directory. Only use for debugging purposes. This can over-burden the filesystem is used with too many (>10) jobs.")
 parser.add_argument("--nonice",action='store_true',dest="nonice",help="Do not run this at nice priority.")
 parser.add_argument("--sleep",type=int,help="Time in seconds to sleep before starting the next job.",default=5)
 parser.add_argument("--max_memory",type=str,default='4G',help='Maximum amount of memory to give jobs. Can use \'K\', \'M\', \'G\' as suffix specifiers.')
-parser.add_argument("--max_disk",type=str,default='4G',help='Maximum amount of disk space to give jobs. Can use \'K\', \'M\', \'G\' as suffix specifiers.')
+parser.add_argument("--max_disk",type=str,default='1G',help='Maximum amount of disk space to give jobs. Can use \'K\', \'M\', \'G\' as suffix specifiers.')
 parser.add_argument("--periodic_release",action='store_true',help="Periodically release any jobs that exited because the worker node was not connected to cvmfs or hdfs.")
 
 machine_choice = parser.add_mutually_exclusive_group()

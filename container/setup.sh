@@ -22,7 +22,7 @@
 # appear when cmake looks for them.
 ###############################################################################
 
-export LDMX_CONTAINER_DIR=/export/scratch/users/eichl008/ldmx-container/
+export LDMX_CONTAINER_DIR=/export/scratch/users/eichl008/ldmx-container
 
 # Using the bash variable 'PYTHONHOME' gives a hint to look
 #   here for Python to cmake, so this helps simplify our

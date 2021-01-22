@@ -43,16 +43,13 @@ ldmx-container-pack() {
   export OLDPWD=$_old_pwd
 }
 
-# Check host for container
-#   Not working because tar does not preserve GID across different filesystems
+# Check host for a container, cvmfs, and hdfs
 ldmx-container-check() {
-  _container=$(realpath "$1")
-  _host="$2"
+  _host="$1"
   echo -n "$_host..."
-  if ssh -q $_host "cd /export/scratch/users/eichl008 && tar -df $_container ldmx-container/"; then
-    echo "good"
-  else
-    echo "bad"
+  if ! ssh -q $_host "if [[ ! -d /cvmfs/cms.cern.ch ]]; then echo 'No cvmfs'; elif [[ ! -d /hdfs/cms/user ]]; then echo 'No hdfs'; elif [[ ! -d $LDMX_CONTAINER_DIR ]]; then echo 'No container'; else echo 'good'; fi"
+  then
+    echo "Could not connect."
   fi
 }
 
@@ -63,7 +60,6 @@ internal-ldmx-container-deploy() {
   if ssh -q $_host "mkdir -p /export/scratch/users/eichl008 && cd /export/scratch/users/eichl008 && if [[ -d ldmx-container ]]; then rm -rf ldmx-container; fi && tar xf $_container"; then
     return 0
   else
-    export _failed_deployments="$_failed_deployments $_host"
     return 1
   fi
 }
@@ -72,23 +68,19 @@ internal-ldmx-container-deploy() {
 ldmx-container-test() {
   _host="$1"
   _config=$(realpath "$2")
-  _args="{@:3}"
-  ssh $_host $LDMX_CONTAINER_DIR/run_fire TEST $LDMX_CONTAINER_DIR/setup.sh $_config $(pwd) $_args
+  _args="${@:3}"
+  ssh $_host $LDMX_CONTAINER_DIR/run_fire.sh TEST $LDMX_CONTAINER_DIR/setup.sh $_config $(pwd) $_args
 }
 
 # Fully deploy the input container to all worker nodes
 #   we assume container is on hdfs so multiple machines can read from it no problem
 ldmx-container-deploy() {
-  export _failed_deployments=""
-  echo -n "deploying..."
+  echo "deploying..."
   for _host in ${@:2}; do
+    echo -n "$_host..."
     internal-ldmx-container-deploy $1 $_host &
     sleep 1
   done
   wait
   echo "done"
-  if [[ ! -z "$_failed_deployments" ]]; then
-    echo "Failed to deploy to:$_failed_deployments"
-  fi
-  unset _failed_deployments
 }

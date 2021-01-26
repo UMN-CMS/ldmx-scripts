@@ -97,6 +97,15 @@ copy-and-check() {
   return 1
 }
 
+# check if output directory exists
+#   we wait until here because sometimes
+#   hdfs is connected when we start the job
+#   but isn't connected at the end
+if [[ ! -d $_output_dir ]]; then
+  echo "Output directory '$_output_dir' doesn't exist!"
+  exit 117
+fi
+
 # copy over each output file, checking to make sure it worked
 #   most of the time this is only one file, but sometimes
 #   we create both a event and a histogram file

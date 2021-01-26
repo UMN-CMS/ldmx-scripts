@@ -6,6 +6,7 @@ import classad #htcondor internal data structure
 import getpass #for username
 import sys #for sys.stdout
 import time #for sleep
+import glob #iterating through directory
 
 def _my_q(extra_filters = True) :
     """Get the queue for the current user
@@ -298,3 +299,23 @@ def why_held() :
         if c not in codes: codes.append(c)
 
     return codes
+
+def check_event_files(directory) :                                                                                                 
+    """Sometimes batch files are only partially completed.
+
+    This checks if a root file needs to be 'recovered', implying
+    that it was only partially completed when copied over to the
+    end point.
+    """
+
+    bad_files = []
+    for f in glob.iglob(f'{directory}/**', recursive=False) :
+        if not f.endswith('.root') : continue
+        rf = ROOT.TFile.Open(f)
+        print(f,end='...',flush=True)
+        if rf.TestBit(ROOT.TFile.EStatusBits.kRecovered) :
+            print('bad')
+            bad_files.append(f)
+        else :
+            print('good')
+    return bad_files

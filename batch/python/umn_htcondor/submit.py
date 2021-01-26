@@ -69,6 +69,11 @@ class JobInstructions(htcondor.Submit) :
         #   and so that the jobs have a stable version
         full_config_path = utility.full_file(config)
         shutil.copy2(full_config_path, os.path.join(self.__full_detail_dir_path,'config.py'))
+        full_run_script = utility.full_file(executable_path)
+        shutil.copy2(full_run_script, os.path.join(self.__full_detail_dir_path,'run_fire.sh'))
+
+        # log directory inside of detail directory
+        log_dir = utility.full_dir(os.path.join(self.__full_detail_dir_path,'logs'))
 
         super().__init__({
             'universe' : 'vanilla',
@@ -90,18 +95,26 @@ class JobInstructions(htcondor.Submit) :
             # Now our job specific information
             #   'executable' is required by condor and that variable name cannot be changed
             #   the other variable names are ours and can be changed and used in the rest of this file
-            'output_dir' : self.__full_out_dir_path,
-            'env_script' : environment_script,
-            # assume config script is in output directory
-            'config_script' : '$(output_dir)/detail/config.py',
-            'executable' : utility.full_file(executable_path),
+            # We will be having bash read a script to run our program
+            'executable' : 'bash', 
+            # Don't try to transfer executable (assume bash is installed on all target nodes)
+            'transfer_executable' : False,
+            # Tell condor that it should transfer files that it controls
+            'should_transfer_files' : 'YES',
+            # Copy the output files when the job exits
+            'when_to_transfer_output' : 'ON_EXIT',
+            # stdout and stderr are the same file
+            'output' : f'{log_dir}/$(Cluster)-$(Process).out',
+            'error'  : '$(output)',
+            # Condor log file
+            'log' : f'{log_dir}/$(Cluster)-$(Process).log',
             # Pass the username through the environment, so the bash script can use $USER
             'environment' : classad.quote(f'USER={getpass.getuser()}'),
             # This needs to match the correct order of the arguments in the run_fire.sh script
             #   The input file and any extra config arguments are optional and come after the
             #   three required arguments
             # We will be adding to this entry in the dictionary as we determine arguments to the config script
-            'arguments' : f'$(Cluster)-$(Process) $(env_script) $(config_script) $(output_dir) {extra_config_args} {input_arg_name}'
+            'arguments' : f'{full_run_script} $(Cluster)-$(Process) {environment_script} {full_config_path} {self.__full_out_dir_path} {extra_config_args} {input_arg_name}'
           })
 
         self['requirements'] = utility.dont_use_machine('caffeine')
@@ -193,29 +206,6 @@ class JobInstructions(htcondor.Submit) :
         """
 
         self['periodic_release'] = (classad.Attribute('HoldReasonSubCode') == 99).and_(classad.Attribute('HoldReasonCode') == 3)
-
-    def save_output(self, out_dir) :
-        """Tell HTCondor to save the terminal output of **all** jobs in this batch to files in the input directory.
-
-        The files are named after the cluster and process id numbers of the jobs,
-        so if you submitted three jobs and got a cluster number of 999 back, the files
-        would be named 999-0.out, 999-1.out, and 999-2.out.
-
-        Parameters
-        ----------
-        out_dir : str
-            Path to directory where we should put the terminal output files
-
-        Warnings
-        --------
-        This should only be used for debugging purposes.
-        This **will** overload the file system if you attempt to store the terminal
-        output of hundreds of jobs at once.
-        """
-
-        terminal_output_file = os.path.join(utility.full_dir(out_dir),'$(Cluster)-$(Process).out')
-        self['output'] = terminal_output_file
-        self['error' ] = terminal_output_file
 
     def run_over_input_dirs(self, input_dirs, num_files_per_job) :
         """Have the config script run over num_files_per_job files taken from input_dirs, generating jobs

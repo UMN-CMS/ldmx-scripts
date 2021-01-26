@@ -16,36 +16,10 @@
 #
 #   Assumptions:
 #     - LDMX_INSTALL_PREFIX is defined to be the install path of ldmx-sw
-#     - First argument is name of geant4 installation
-#     - Second argument is name of root installation
 ###############################################################################
 
-_g4_version="$1"
-_root_version="$2"
-
-## bash variables needed by cmake
-# /local/cms installations of geant4 and root
-TMP_ROOT="/local/cms/user/eichl008/install-test"
-_g4_base="$TMP_ROOT/local/cms/other/geant4"
-export G4DIR="$_g4_base/$_g4_version"
-
-if [ ! -d $G4DIR ]
-then
-  echo "'$_g4_version' not installed at '$_g4_base'."
-  echo "Options: $(ls $_g4_base)."
-  return 1
-fi
-
-_root_base="$TMP_ROOT/local/cms/other/root"
-ROOTDIR="$_root_base/$_root_version"
-
-if [ ! -d $ROOTDIR ]
-then
-  echo "'$_root_version' not installed at '$_root_base'."
-  echo "Options: $(ls $_root_base)."
-  return 2
-fi
-
+export G4DIR="/local/cms/user/eichl008/geant4/geant4.10.02.p03_v0.3/install"
+_root_dir="/local/cms/user/eichl008/root/6.22.06/install"
 _boost_dir="/local/cms/user/eichl008/boost/install"
 
 # Using the bash variable 'PYTHONHOME' gives a hint to look
@@ -82,13 +56,13 @@ ldmx-env-source() {
 
 ## Initialize libraries/programs from cvmfs and /local/cms
 # all of these init scripts add their library paths to LD_LIBRARY_PATH
-ldmx-env-source $XERCESDIR                      #xerces-c
+ldmx-env-source $XERCESDIR                        #xerces-c
 ldmx-env-source $_cvmfs_dir/external/cmake/3.17.2 #cmake
 ldmx-env-source $_cvmfs_dir/external/bz2lib/1.0.6 #bz2lib
 ldmx-env-source $_cvmfs_dir/external/zlib/1.0     #zlib
-ldmx-env-source $GCCDIR                         #gcc
-ldmx-env-source $ROOTDIR/bin/thisroot.sh        #root 
-ldmx-env-source $G4DIR/bin/geant4.sh            #geant4
+ldmx-env-source $GCCDIR                           #gcc
+ldmx-env-source $_root_dir/bin/thisroot.sh        #root 
+ldmx-env-source $G4DIR/bin/geant4.sh              #geant4
 
 if [ $_we_good != "YES" ]
 then

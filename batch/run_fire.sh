@@ -20,7 +20,7 @@ if [[ ! -d /cvmfs/cms.cern.ch || ! -d /hdfs/cms/user ]]; then
 fi
 
 # make sure we go to our scratch area
-_scratch_root=/export/scratch/users/$USER/
+_scratch_root=/tmp/$USER/
 mkdir -p $_scratch_root
 cd $_scratch_root
 
@@ -79,7 +79,7 @@ copy-and-check() {
   _num_tries="$2"
   _source="$3"
   _dest_dir="$4"
-  for try in seq $_num_tries
+  for try in $(seq $_num_tries)
   do
     if cp $_source $_dest_dir; then
       if cmp -s $_source $_dest_dir/$_source; then

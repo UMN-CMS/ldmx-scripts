@@ -45,5 +45,5 @@ alias grepmodules='grep --exclude-dir=build --exclude-dir=docs --exclude-dir=ins
 # setup the condor batch environemtn
 alias ldmx-condor-env='source $LDMX_ENV_DIR/batch/condor_env.sh'
 
-# setup the container environment
-alias ldmx-container-env='source $LDMX_ENV_DIR/container/container_env.sh'
+# remove all the files listed in install_manifest.txt
+alias ldmx-clean-install='xargs rm < install_manifest.txt'

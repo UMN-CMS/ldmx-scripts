@@ -65,9 +65,24 @@ fi
 #   using 'cmp -s' which does a bit-wise comparison and
 #   returns a failure status upon the first mis-match.
 #   
+#   Sometimes (usually for larger files like ours),
+#   the kernel decides to put the file into a buffer
+#   and have cp return success. This is done because
+#   the computer can have the copy continue on in the
+#   background without interfering with the user.
+#   In our case, this sometimes causes a failure because
+#   we attempt to compare the copied file (which is only
+#   partial copied) to the original. To solve this
+#   niche issue, we can simply add the 'sync' command
+#   which tells the terminal to wait for these write
+#   buffers to finish before moving on.
+#
 #   We return a success-status of 0 if we cp and cmp.
 #   Otherwise, we make sure any partially-copied files
-#   are removed from the destination directory and try again.
+#   are removed from the destination directory and try again
+#   until the input number of tries are attempted.
+#   If we get through all tries without return success,
+#   then we return a failure status of 1.
 #
 #   Arguments
 #     1 - Time in seconds to sleep between tries
@@ -81,7 +96,8 @@ copy-and-check() {
   _dest_dir="$4"
   for try in $(seq $_num_tries)
   do
-    if cp $_source $_dest_dir; then
+    if cp -t $_dest_dir $_source; then
+      sync #wait for large files to actually leave buffer
       if cmp -s $_source $_dest_dir/$_source; then
         #SUCCESS!
         return 0;

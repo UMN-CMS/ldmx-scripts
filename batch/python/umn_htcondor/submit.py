@@ -69,6 +69,7 @@ class JobInstructions(htcondor.Submit) :
         #   and so that the jobs have a stable version
         full_config_path = utility.full_file(config)
         shutil.copy2(full_config_path, os.path.join(self.__full_detail_dir_path,'config.py'))
+
         full_run_script = utility.full_file(executable_path)
         shutil.copy2(full_run_script, os.path.join(self.__full_detail_dir_path,'run_fire.sh'))
 
@@ -96,7 +97,7 @@ class JobInstructions(htcondor.Submit) :
             #   'executable' is required by condor and that variable name cannot be changed
             #   the other variable names are ours and can be changed and used in the rest of this file
             # We will be having bash read a script to run our program
-            'executable' : 'bash', 
+            'executable' : '/usr/bin/bash', 
             # Don't try to transfer executable (assume bash is installed on all target nodes)
             'transfer_executable' : False,
             # Tell condor that it should transfer files that it controls
@@ -110,11 +111,16 @@ class JobInstructions(htcondor.Submit) :
             'log' : f'{log_dir}/$(Cluster)-$(Process).log',
             # Pass the username through the environment, so the bash script can use $USER
             'environment' : classad.quote(f'USER={getpass.getuser()}'),
+            # Just some helpful variables to clean up the long arguments line
+            'output_dir' : self.__full_out_dir_path,
+            'run_script' : '$(output_dir)/detail/run_fire.sh',
+            'env_script' : environment_script,
+            'conf_script' : '$(output_dir)/detail/config.py',
             # This needs to match the correct order of the arguments in the run_fire.sh script
             #   The input file and any extra config arguments are optional and come after the
             #   three required arguments
             # We will be adding to this entry in the dictionary as we determine arguments to the config script
-            'arguments' : f'{full_run_script} $(Cluster)-$(Process) {environment_script} {full_config_path} {self.__full_out_dir_path} {extra_config_args} {input_arg_name}'
+            'arguments' : f'$(run_script) $(Cluster)-$(Process) $(env_script) $(conf_script) $(output_dir) {extra_config_args} {input_arg_name}'
           })
 
         self['requirements'] = utility.dont_use_machine('caffeine')

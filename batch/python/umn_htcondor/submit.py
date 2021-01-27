@@ -216,7 +216,7 @@ class JobInstructions(htcondor.Submit) :
         self['next_job_start_delay'] = time
 
     def periodic_release(self) :
-        """Tell this HTCondor to release all jobs that returned an exit code of 99 and were then held.
+        """Tell this HTCondor to release all jobs that returned specific exit codes
 
         The run_fire.sh script that runs the jobs returns a failure status of 99 when the worker node
         it is assigned to is not connected to hdfs and/or cvmfs (both of which are required for our jobs).
@@ -224,13 +224,31 @@ class JobInstructions(htcondor.Submit) :
         
         If a machine is not reconnected to hdfs/cvmfs automatically, you may with to ban it.
 
+        Other exit codes from run fire correspond to failure modes that aren't our fault,
+        and simply require us to re-submit. These other failure modes aren't really well understood,
+        but they seem to only affect our jobs for a small number of randomly distributed jobs.
+
+        Exit Code | Description of Failure Mode
+        ----------|----------------------------
+        99        | hdfs or cvmfs is not mounted on worker node (before running)
+        100       | Can't create or enter working directory (probably not enough space on worker node)
+        117       | Output directory can't be seen on worker node (probably disconnected from hdfs during running)
+        118       | Output file failed to cp to destination or copy of file did not match original
+
         See Also
         --------
         ban_machine : Banning machines before submitting jobs
         manage.ban_machine : Banning machines while they are idle/held
         """
 
-        self['periodic_release'] = (classad.Attribute('HoldReasonSubCode') == 99).and_(classad.Attribute('HoldReasonCode') == 3)
+        # The hold reason code is 3 when we told condor to hold the job on exit
+        # We told condor to hold if run_fire.sh exits with a non-zero exit code
+        held_by_us = (classad.Attribute('HoldReasonCode') == 3)
+
+        # We have told condor to save the exit code of run_fire.sh in HoldReasonSubCode
+        exit_code = classad.Attribute('HoldReasonSubCode')
+
+        self['periodic_release'] = held_by_us.and_((exit_code == 99).or_(exit_code == 100).or_(exit_code == 117).or_(exit_code == 118))
 
     def run_over_input_dirs(self, input_dirs, num_files_per_job) :
         """Have the config script run over num_files_per_job files taken from input_dirs, generating jobs

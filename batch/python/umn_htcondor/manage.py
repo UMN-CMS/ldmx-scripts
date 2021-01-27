@@ -308,6 +308,7 @@ def check_event_files(directory) :
     end point.
     """
 
+    import ROOT
     bad_files = []
     for f in glob.iglob(f'{directory}/**', recursive=False) :
         if not f.endswith('.root') : continue

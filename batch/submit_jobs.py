@@ -41,6 +41,7 @@ parser.add_argument("--sleep",type=int,help="Time in seconds to sleep before sta
 parser.add_argument("--max_memory",type=str,default='4G',help='Maximum amount of memory to give jobs. Can use \'K\', \'M\', \'G\' as suffix specifiers.')
 parser.add_argument("--max_disk",type=str,default='1G',help='Maximum amount of disk space to give jobs. Can use \'K\', \'M\', \'G\' as suffix specifiers.')
 parser.add_argument("--periodic_release",action='store_true',help="Periodically release any jobs that exited because the worker node was not connected to cvmfs or hdfs.")
+parser.add_argument("--priority",type=int,help='Define this job as higher priority than the default of zero. Provide an integer to rank relative to other jobs. (Higher == More Urgent)')
 
 machine_choice = parser.add_mutually_exclusive_group()
 machine_choice.add_argument("--broken_machines",type=str,nargs='+',help="Extra list of machines that should be avoided, usually because they are not running your jobs for whatever reason. For example: --broken_machines scorpion34 scorpion17")
@@ -61,6 +62,9 @@ job_instructions.memory(arg.max_memory)
 job_instructions.disk(arg.max_disk)
 job_instructions.nice(not arg.nonice)
 job_instructions.sleep(arg.sleep)
+
+if arg.priority is not None :
+    job_instructions.priority(arg.priority)
 
 if arg.check_n_pick :
     check_cmd = "'if [[ -d /cvmfs/cms.cern.ch && -d /hdfs/cms/user && -f %s/setup.sh ]]; then exit 0; else exit 1; fi'"%os.environ["LDMX_CONTAINER_DIR"]

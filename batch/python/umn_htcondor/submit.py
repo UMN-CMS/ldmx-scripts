@@ -165,6 +165,25 @@ class JobInstructions(htcondor.Submit) :
 
         self['nice_user'] = bool(be_nice)
 
+    def priority(self, prio = 1) :
+        """Set the priority for this job relative to your other jobs.
+
+        The default priority for your jobs is zero, higher priority
+        integers will mean condor will have those jobs run before the
+        jobs with lower priority.
+
+        Again, this priority integer is only within your own set of jobs.
+        HTCondor and the administrators completely handle priority between
+        different users.
+        
+        Parameters
+        ----------
+        prio : int, optional
+            priority integer specifying how important the job is
+        """
+
+        self['priority'] = prio
+
     def ban_machine(self,m) :
         """Don't allow the jobs to run on the input machine.
 

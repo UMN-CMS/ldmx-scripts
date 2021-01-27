@@ -9,6 +9,7 @@ import getpass  #Gets current user name
 import os # for path joining and directory listing
 import shutil # for copying files
 import sys # for exiting after check failure
+import json # for dumping objects to log file
 from umn_htcondor import utility 
 
 class JobInstructions(htcondor.Submit) :
@@ -59,7 +60,8 @@ class JobInstructions(htcondor.Submit) :
         self.__full_out_dir_path = utility.full_dir(output_dir)
 
         if 'hdfs' not in self.__full_out_dir_path :
-            print(f' WARN You are writing output files to a directory that is *not* in {utility.hdfs_dir()}.')
+            if not JobInstructions._warn('You are writing output files to a directory that is *not* in {utility.hdfs_dir()}.','continue anyway') :
+                raise Exception('Not using HDFS!')
 
         self.__full_detail_dir_path = utility.full_dir(os.path.join(self.__full_out_dir_path, 'detail'))
 
@@ -364,6 +366,11 @@ class JobInstructions(htcondor.Submit) :
         answer = input('[Q/q+Enter] to quit or [Enter] to '+next_thing+'... ')
         return (not answer.capitalize().startswith('Q'))
 
+    def _warn(msg, next_thing) :
+        """Print a warning message and ask for confirmation before proceding to next thing."""
+        print(f' WARN {msg}') 
+        return JobInstructions.__pause_before(next_thing)
+
     def __str__(self) :
         """Return a printed version of this object using htcondor.Submit.__str__"""
         return super().__str__()
@@ -385,11 +392,16 @@ class JobInstructions(htcondor.Submit) :
             Open file to write our full submission log to
         """
 
+        f.write("== Condor Configuration ==\n")
         print(self, file=f)
-        f.write("\nFull List of Jobs:\n")
-        for j in self.jobs(itemdata=iter(self.__items_to_loop_over),clusterid=self.__cluster_id) :
-            f.write(j.printJson())
-            f.write('\n')
+        f.write("\n== Run Script ==\n")
+        with open(self.__full_detail_dir_path+'/run_fire.sh') as rs :
+            f.write(rs.read())
+        f.write("\n== Config Script ==\n")
+        with open(self.__full_detail_dir_path+'/config.py') as conf :
+            f.write(conf.read())
+        f.write("\n== List of Items ==\n")
+        f.write(json.dumps(self.__items_to_loop_over))
 
     def submit(self) :
         """Actually submit the job instructions to the batch system."""

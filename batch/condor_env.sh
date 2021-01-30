@@ -12,6 +12,11 @@ alias ldmx-make-stable='bash $LDMX_ENV_DIR/batch/make_stable.sh'
 #   so make sure to 'ssh scorpion1' before this
 alias ldmx-submit-jobs='python3 $LDMX_ENV_DIR/batch/submit_jobs.py'
 
+# Launching everything from scorpion1 since zebras have been
+#   disconnected from HTCondor
+alias condor_q='ssh scorpion1 condor_q'
+alias condor_rm='ssh scorpion1 condor_rm'
+
 # look at my job listing
 alias my-q='condor_q -submitter $USER'
 
@@ -19,7 +24,7 @@ alias my-q='condor_q -submitter $USER'
 alias my-q-totals='my-q -totals'
 
 # watch the job totals
-alias watch-q='watch condor_q -submitter $USER -totals'
+alias watch-q='watch -n 30 ssh scorpion1 condor_q -submitter $USER -totals'
 
 # Count the number of root files in the input directory
 file-count() {
@@ -76,4 +81,10 @@ clean-scorpions() {
 # List jobs that failed to copy
 failed-copy() {
   my-q -held -constraint 'HoldReasonSubCode == 118' $@
+}
+
+# Archive log files for the input cluster
+archive-logs() {
+  _cluster="$1"
+  tar --create --remove-files --verbose --file $_cluster.tar.gz $_cluster-*
 }

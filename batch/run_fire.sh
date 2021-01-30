@@ -20,7 +20,7 @@ if [[ ! -d /cvmfs/cms.cern.ch || ! -d /hdfs/cms/user ]]; then
 fi
 
 # make sure we go to our scratch area
-_scratch_root=/tmp/$USER/
+_scratch_root=/export/scratch/users/$USER/
 mkdir -p $_scratch_root
 cd $_scratch_root
 

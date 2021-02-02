@@ -300,23 +300,33 @@ def why_held() :
 
     return codes
 
-def check_event_files(directory) :                                                                                                 
+def check_event_files(directory, the_glob='**') :
     """Sometimes batch files are only partially completed.
 
     This checks if a root file needs to be 'recovered', implying
     that it was only partially completed when copied over to the
     end point.
+    
+    Parameters
+    ----------
+    directory : str
+        Directory to look for bad event files in
+    the_glob : str, optional
+        Glob patter matching for file in directory
     """
-
-    import ROOT
     bad_files = []
-    for f in glob.iglob(f'{directory}/**', recursive=False) :
+    import ROOT
+    for f in glob.iglob(f'{directory}/{the_glob}', recursive=False) :
         if not f.endswith('.root') : continue
         rf = ROOT.TFile.Open(f)
         print(f,end='...',flush=True)
-        if rf.TestBit(ROOT.TFile.EStatusBits.kRecovered) :
+        try :
+            if rf.TestBit(ROOT.TFile.EStatusBits.kRecovered) :
+                print('bad')
+                bad_files.append(f)
+            else :
+                print('good')
+        except :
             print('bad')
             bad_files.append(f)
-        else :
-            print('good')
     return bad_files

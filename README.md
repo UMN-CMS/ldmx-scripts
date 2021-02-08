@@ -2,7 +2,9 @@
 
 This repository is focused on helping LDMX collaborators use ldmx-sw at UMN.
 
-Currently, UMN does *not* have a container running program installed, so we still have to construct the dependencies from `cvmfs`.
+Currently, UMN does *not* have a container running program installed, 
+so we still have to construct the dependencies from `cvmfs` and building them ourselves.
+Look at the [bare metal build](bare_metal_build.md) notes for how the dependencies have been set up.
 
 This has been done in the `ldmx-env.sh` bash script.
 
@@ -15,4 +17,3 @@ This has been done in the `ldmx-env.sh` bash script.
 - Run: `fire config.py`
 
 For a more detailed explanation, look at the [Getting Started Guide](getting_started.md).
-

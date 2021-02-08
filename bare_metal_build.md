@@ -16,8 +16,8 @@ This script does the two main activities for making sure our environment is setu
 1. Source initialization scripts for various dependencies.
 2. Manually add directories to `PATH` (for executables), `LD_LIBRARY_PATH` (for dynamically loaded libraries), and `PYTHONPATH` (for python modules).
 
-In that script, you can see all of the details.
-Here, I will offer some explanation.
+In that script, you can see all of the details on how to construct the environment.
+Here, I will offer some explanation on how to setup the dependencies correctly so that script can work properly.
 
 ## CVMFS
 
@@ -32,6 +32,8 @@ Essentially, what we need to know about it are two things.
 CVMFS is organized into a hierarchy where the first level is based on the operating system and GCC version the user wishes to use.
 ldmx-sw uses C++17 (min gcc ~5?) and our cluster is CentOS 7 (equivalent to `slc7`), so we will choose to look for our dependencies
 in `/cvmfs/cms.cern.ch/slc7_amd64_gcc820/`. For the rest of this document, this directory is called `<cvfms_dir>`.
+Because the rest of the dependencies depend on the version of GCC we use, changing the GCC version is a huge hassle.
+For this reason, the most recent version of GCC available on CVMFS was chosen even though it is more advanced than required.
 
 Each of the software packages installed on CVMFS can be initialized by the script
 ```

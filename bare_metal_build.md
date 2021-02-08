@@ -81,6 +81,10 @@ ROOT needs to be built with our specific installation of Python, so we will buil
 2. Unpack the source code `tar xzvf Python-3.8.3.tgz`
 3. Go into the source code `cd Python-3.8.3`
 4. Configure the build
+   - `--enable-shared` is required because we will be linking to a C++ program.
+   - `--enable-optimizations` just allows it to be good amount faster but takes longer to compile.
+   - `--with-ensurepip=install` makes sure this Python has its own `pip` so we can install packages
+   - `--prefix` defines where the installation should go
 ```
 ./configure.sh \
   --enable-shared \
@@ -88,10 +92,6 @@ ROOT needs to be built with our specific installation of Python, so we will buil
   --with-ensurepip=install \
   --prefix=<local>/python/install
 ```
-    - `--enable-shared` is required because we will be linking to a C++ program.
-    - `--enable-optimizations` just allows it to be good amount faster but takes longer to compile.
-    - `--with-ensurepip=install` makes sure this Python has its own `pip` so we can install packages
-    - `--prefix` defines where the installation should go
 5. Build and Install `make -j4 install`
 6. Install `numpy` (required for PyROOT) and `htcondor` (for batch submission)
 ```
@@ -115,6 +115,13 @@ cd ../install
 0. Go and make a place for it `cd <local>; mkdir geant4; cd geant4`
 1. Download the source specific to ldmx `git clone -b LDMX.10.2.3_v0.4 https://github.com/LDMX-Software/geant4.git`
 2. Configure the build
+   - We want Geant4 to install any necessary data (`-DGEANT4_INSTALL_DATA=ON`) but we put all data (no matter the Geant4 version)
+     into a shared directory (`-DGEANT4_INSTALL_DATADIR=/hdfs/cms/user/eichl008/geant4/data`) so 
+     we dont waste time downloading data we already have.
+   - We need to point Geant4 directly to Xerces-C (`-DXERCESC_ROOT_DIR=$XERCESDIR`).
+   - We can somewhat lighten the Geant4 installation by not installing examples. This option is not present in all Geant4 versions.
+   - We install Geant4 into a directory named after the version we pulled the source for.
+     This is done because there will inevitably be a time when we are thinking of upgrading Geant4.
 ```
 cmake \
   -DGEANT4_INSTALL_DATA=ON \
@@ -126,13 +133,6 @@ cmake \
   -B geant4/build \
   -S geant4
 ```
-    - We want Geant4 to install any necessary data (`-DGEANT4_INSTALL_DATA=ON`) but we put all data (no matter the Geant4 version)
-      into a shared directory (`-DGEANT4_INSTALL_DATADIR=/hdfs/cms/user/eichl008/geant4/data`) so 
-      we dont waste time downloading data we already have.
-    - We need to point Geant4 directly to Xerces-C (`-DXERCESC_ROOT_DIR=$XERCESDIR`).
-    - We can somewhat lighten the Geant4 installation by not installing examples. This option is not present in all Geant4 versions.
-    - We install Geant4 into a directory named after the version we pulled the source for.
-      This is done because there will inevitably be a time when we are thinking of upgrading Geant4.
 3. Build and Install
 ```
 cmake \
@@ -149,6 +149,10 @@ This dependency is the most finicky, so dont be surprised if you run into diffic
 1. Download the source into a matching version directory `mkdir 6.22.06; cd 6.22.06; wget https://root.cern/download/root_v6.22.06.source.tar.gz`
 2. Unpack the source into its own directory `mkdir source; tar xzvf root_v6.22.06.source.tar.gz -C source`
 3. Configure the build
+   - We need to point this ROOT build to our custom Python that was built earlier.
+     This is where we would need to re-source `ldmx-setup-deps.sh`, but this time with everything (but ROOT) un-commented.
+   - We want this ROOT build to be lighter `-Dminimal=ON`, but we still need PyROOT `-Dpyroot=ON`.
+   - ldmx-sw requires that ROOT is built with C++17 `-DCMAKE_CXX_STANDARD=17`
 ```
 cmake \
     -DCMAKE_INSTALL_PREFIX=install \
@@ -160,10 +164,6 @@ cmake \
     -S source \
     -B build
 ```
-    - We need to point this ROOT build to our custom Python that was built earlier.
-      This is where we would need to re-source `ldmx-setup-deps.sh`, but this time with everything (but ROOT) un-commented.
-    - We want this ROOT build to be lighter `-Dminimal=ON`, but we still need PyROOT `-Dpyroot=ON`.
-    - ldmx-sw requires that ROOT is built with C++17 `-DCMAKE_CXX_STANDARD=17`
 4. Build and Install
 ```
 cmake --build build --target install -- -j4

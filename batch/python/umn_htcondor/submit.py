@@ -106,11 +106,14 @@ class JobInstructions(htcondor.Submit) :
             'should_transfer_files' : 'YES',
             # Copy the output files when the job exits
             'when_to_transfer_output' : 'ON_EXIT',
+            # Our job ID is just a combination of the cluster and process IDs
+            #   we add some zero-padding to the process id so everything is nice and aligned :)
+            'our_job_id' : '$(Cluster)_$INT(Process,%04d)',
             # stdout and stderr are the same file
-            'output' : f'{log_dir}/$(Cluster)-$(Process).out',
+            'output' : f'{log_dir}/$(our_job_id).out',
             'error'  : '$(output)',
             # Condor log file
-            'log' : f'{log_dir}/$(Cluster)-$(Process).log',
+            'log' : f'{log_dir}/$(our_job_id).log',
             # Pass the username through the environment, so the bash script can use $USER
             'environment' : classad.quote(f'USER={getpass.getuser()}'),
             # Just some helpful variables to clean up the long arguments line
@@ -122,7 +125,7 @@ class JobInstructions(htcondor.Submit) :
             #   The input file and any extra config arguments are optional and come after the
             #   three required arguments
             # We will be adding to this entry in the dictionary as we determine arguments to the config script
-            'arguments' : f'$(run_script) $(Cluster)-$(Process) $(env_script) $(conf_script) $(output_dir) {extra_config_args} {input_arg_name}'
+            'arguments' : f'$(run_script) $(our_job_id) $(env_script) $(conf_script) $(output_dir) {extra_config_args} {input_arg_name}'
           })
 
         self['requirements'] = utility.dont_use_machine('caffeine')

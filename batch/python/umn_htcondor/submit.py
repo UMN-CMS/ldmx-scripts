@@ -404,7 +404,7 @@ class JobInstructions(htcondor.Submit) :
         with open(self.__full_detail_dir_path+'/config.py') as conf :
             f.write(conf.read())
         f.write("\n== List of Items ==\n")
-        f.write(json.dumps(self.__items_to_loop_over))
+        f.write(json.dumps(self.__items_to_loop_over,indent=1))
 
     def submit(self) :
         """Actually submit the job instructions to the batch system."""

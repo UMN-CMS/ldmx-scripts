@@ -90,12 +90,11 @@ fi
 #     3 - source file to copy
 #     4 - destination directory to put copy in
 copy-and-check() {
-  _sleep_between_tries="$1"
-  _num_tries="$2"
-  _source="$3"
-  _dest_dir="$4"
-  for try in $(seq $_num_tries)
-  do
+  local _sleep_between_tries="$1"
+  local _num_tries="$2"
+  local _source="$3"
+  local _dest_dir="$4"
+  for try in $(seq $_num_tries); do
     if cp -t $_dest_dir $_source; then
       sync #wait for large files to actually leave buffer
       if cmp -s $_source $_dest_dir/$_source; then
@@ -125,8 +124,7 @@ fi
 # copy over each output file, checking to make sure it worked
 #   most of the time this is only one file, but sometimes
 #   we create both a event and a histogram file
-for _output_file in *.root
-do
+for _output_file in *.root; do
   if ! copy-and-check 30 10 $_output_file $_output_dir; then
     # Coulding copy after trying 10 times, waiting
     #   30s between each try.

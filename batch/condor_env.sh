@@ -99,11 +99,16 @@ archive-logs() {
 # Manually go to a remote and get the finished file
 manual-copy() {
   local _remote="$1"
-  local _cluster="$2"
-  local _process="$3"
-  local _dest="/local/cms/user/$USER"
-  echo -n "$_remote (${_cluster}-${_process})..."
-  if ! ssh -q $_remote "cd /export/scratch/users; if [[ -d $USER ]]; then cd $USER; if [[ -d ${_cluster}-${_process} ]]; then cd ${_cluster}-${_process}; for _f in *.root; do if cp -t $_dest $_f && sync && cmp -s $_f $_dest/$_f; then echo 'success'; else echo 'failed to copy'; fi; done; else echo 'No job dir'; fi; else echo 'No user dir'; fi"
+  local _job_id="$(printf "%d_%04d" $2 $3)"
+  local _dest="$4"
+  if [[ -z "$_dest" ]]
+  then
+    _dest=$(pwd)
+  else
+    _dest=$(realpath $_dest)
+  fi
+  echo -n "$_remote ($_job_id)..."
+  if ! ssh -n -q $_remote "cd /export/scratch/users; if [[ -d $USER ]]; then cd $USER; if [[ -d $_job_id ]]; then cd $_job_id; for _f in *.root; do if cp -t $_dest \$_f && sync && cmp -s \$_f $_dest/\$_f; then cd ..; rm -r $_job_id; echo 'success'; else echo 'failed to copy'; fi; done; else echo 'No job dir'; fi; else echo 'No user dir'; fi"
   then
     echo "Can't connect"
   fi

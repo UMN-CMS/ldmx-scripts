@@ -35,18 +35,18 @@ full_path_to_dir_we_are_in=os.path.dirname(os.path.realpath(__file__))
 parser.add_argument("--run_script",type=str,help="Script to run jobs on worker nodes with.",default='%s/run_fire.sh'%full_path_to_dir_we_are_in)
 parser.add_argument("--config_args",type=str,default='',help="Extra arguments to be passed to the configuration script. Passed after the run_number or input_file.")
 parser.add_argument("--nocheck",action='store_true',help="Don't pause to look at job details before submitting.")
-parser.add_argument("--save_output",type=str,help="Save terminal output to the input directory. Only use for debugging purposes. This can over-burden the filesystem is used with too many (>10) jobs.")
 parser.add_argument("--nonice",action='store_true',dest="nonice",help="Do not run this at nice priority.")
 parser.add_argument("--sleep",type=int,help="Time in seconds to sleep before starting the next job.",default=5)
 parser.add_argument("--max_memory",type=str,default='4G',help='Maximum amount of memory to give jobs. Can use \'K\', \'M\', \'G\' as suffix specifiers.')
 parser.add_argument("--max_disk",type=str,default='1G',help='Maximum amount of disk space to give jobs. Can use \'K\', \'M\', \'G\' as suffix specifiers.')
 parser.add_argument("--periodic_release",action='store_true',help="Periodically release any jobs that exited because the worker node was not connected to cvmfs or hdfs.")
 parser.add_argument("--priority",type=int,help='Define this job as higher priority than the default of zero. Provide an integer to rank relative to other jobs. (Higher == More Urgent)')
+parser.add_argument("--broken_machines",type=str,nargs='+',help="Extra list of machines that should be avoided, usually because they are not running your jobs for whatever reason. For example: --broken_machines scorpion34 scorpion17")
 
 machine_choice = parser.add_mutually_exclusive_group()
-machine_choice.add_argument("--broken_machines",type=str,nargs='+',help="Extra list of machines that should be avoided, usually because they are not running your jobs for whatever reason. For example: --broken_machines scorpion34 scorpion17")
 machine_choice.add_argument("--useable_machines",type=str,nargs='+',help="List of machines that should be used, no other machines are allowed. For example: --useable_machines scorpion{1..9}")
-machine_choice.add_argument("--check_n_pick",action='store_true',help='Loop through the scorpions and ban any machines that arent connected to cvmfs or hdfs.')
+machine_choice.add_argument("--production",action='store_true',help='Use the scorpions with the higher scratch space available.')
+machine_choice.add_argument("--analysis",action='store_true',help='Use the scorpions with the lower scratch space available.')
 
 arg = parser.parse_args()
 
@@ -66,21 +66,27 @@ job_instructions.sleep(arg.sleep)
 if arg.priority is not None :
     job_instructions.priority(arg.priority)
 
-if arg.check_n_pick :
-    check_cmd = "'if [[ -d /cvmfs/cms.cern.ch && -d /hdfs/cms/user && -f %s/setup.sh ]]; then exit 0; else exit 1; fi'"%os.environ["LDMX_CONTAINER_DIR"]
-    for s in range(1,49) :
-        host = f'scorpion{s}'
-        if os.system(f'ssh -q {host} {check_cmd}') != 0 :
-            job_instructions.ban_machine(host)
-elif arg.broken_machines is not None :
-    # Add additional machines to avoid using
-    for m in arg.broken_machines :
-        job_instructions.ban_machine(m)
-elif arg.useable_machines is not None :
+scorpions_with_small_scratch = [1,3,5,6,9,10,11,12,14,16,17,18,20,21,22,23,24]
+
+# update list of requirements for our machine choice
+if arg.useable_machines is not None :
     # Reset requirements
     job_instructions['requirements'] = 'False'
     for m in arg.useable_machines :
         job_instructions.use_machine(m)
+elif arg.production :
+    for s in scorpions_with_small_scratch :
+        job_instructions.ban_machine(f'scorpion{s}')
+elif arg.analysis :
+    job_instructions['requirements'] = 'False'
+    for s in scorpions_with_small_scratch :
+        job_instructions.use_machine(f'scorpion{s}')
+
+# include any 'broken' machines as banned machines
+if arg.broken_machines is not None :
+    # Add additional machines to avoid using
+    for m in arg.broken_machines :
+        job_instructions.ban_machine(m)
 
 # run_fire.sh exits with code 99 if the worker is not connected to cvmfs or hdfs
 #   in this case, we want to retry and hopefully find a worker that is correctly connected
@@ -89,14 +95,6 @@ elif arg.useable_machines is not None :
 #   The default is 60s, but our configuration may be different (and I can't figure it out).
 if arg.periodic_release :
     job_instructions.periodic_release()
-
-# If 'save_output' is defined on the command line
-#   use the passed string as the directory to dump terminal output files
-# ONLY GOOD FOR DEBUGGING
-#   This *will* overload the file system if you run a full scale number of jobs
-#   will trying to save all the terminal output to one directory.
-if arg.save_output is not None :
-    job_instructions.save_output(arg.save_output)
 
 if arg.input_dir is not None :
     job_instructions.run_over_input_dirs(arg.input_dir, arg.files_per_job)

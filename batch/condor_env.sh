@@ -93,7 +93,7 @@ failed-copy() {
 # Archive log files for the input cluster
 archive-logs() {
   local _cluster="$1"
-  tar --create --remove-files --verbose --file $_cluster.tar.gz $_cluster-*
+  tar --create --remove-files --verbose --file $_cluster.tar.gz ${_cluster}_*
 }
 
 # Manually go to a remote and get the finished file

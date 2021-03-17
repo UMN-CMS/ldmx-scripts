@@ -9,13 +9,18 @@ set -x
 ###############################################################################
 
 _job_id=$1 #should be unique between jobs submitted by the same user
-_env_script=$2 #environment to use
+_singularity_img=$2 #singularity img to use to run
 _config_script=$3 #script itself to run, should be in output directory
 _output_dir=$4 #output directory to copy products to, should be in /hdfs/cms/user/$USER/ldmx/
 _config_args=${@:5} #arguments to configuration script, input files should be in /hdfs/cms/user/$USER/ldmx/
 
-if [[ ! -d /cvmfs/cms.cern.ch || ! -d /hdfs/cms/user ]]; then
-  echo "Worker node is not connected to cvmfs and/or hdfs."
+if [[ ! -d /hdfs/cms/user ]]; then
+  echo "Worker node is not connected to hdfs."
+  exit 99
+fi
+
+if ! hash singularity &> /dev/null; then
+  echo "Worker node does not have singularity installed."
   exit 99
 fi
 
@@ -45,13 +50,11 @@ clean-up() {
   rm -r $_job_id
 }
 
-if ! source $_env_script; then
-  echo "Wasn't able to source the environment script."
-  clean-up
-  exit 111
-fi
-
-if ! fire $_config_script $_config_args; then
+# Singularity command to run the fire executable
+#   --no-home : don't mount home directory
+#   --bind : mount our current directory and /hdfs/ (for reading input files)
+#   --cleanenv : don't copy current environment into container
+if ! singularity run --no-home --bind $(pwd),/mnt/hdfs/phys/ --cleanenv $_singularity_img . fire $_config_script $_config_args; then
   echo "fire returned an non-zero error status."
   clean-up
   exit 115

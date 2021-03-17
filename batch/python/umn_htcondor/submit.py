@@ -22,8 +22,8 @@ class JobInstructions(htcondor.Submit) :
     output_dir : str
         Path to the directory to copy output files to
         If relative, pre-pend with your hdfs directory.
-    environment_script : str
-        Path to environment script to run to set up job
+    singularity_img : str
+        Path to the img to run for each job
     config : str
         Path to configuration script to give to fire
         The config is copied to the detail directory and run from there to maintain stability.
@@ -53,7 +53,7 @@ class JobInstructions(htcondor.Submit) :
     """
 
     def __init__(self,
-        executable_path, output_dir, environment_script, config,
+        executable_path, output_dir, singularity_img, config,
         input_arg_name = '', extra_config_args = '') :
 
         self.__cluster_id = 0
@@ -65,7 +65,7 @@ class JobInstructions(htcondor.Submit) :
 
         self.__full_detail_dir_path = utility.full_dir(os.path.join(self.__full_out_dir_path, 'detail'))
 
-        utility.check_exists(environment_script)
+        utility.check_exists(singularity_img)
 
         # the config script is copied to the output directory for persistency
         #   and so that the jobs have a stable version
@@ -119,13 +119,13 @@ class JobInstructions(htcondor.Submit) :
             # Just some helpful variables to clean up the long arguments line
             'output_dir' : self.__full_out_dir_path,
             'run_script' : '$(output_dir)/detail/run_fire.sh',
-            'env_script' : environment_script,
+            'singularity_img' : singularity_img,
             'conf_script' : '$(output_dir)/detail/config.py',
             # This needs to match the correct order of the arguments in the run_fire.sh script
             #   The input file and any extra config arguments are optional and come after the
             #   three required arguments
             # We will be adding to this entry in the dictionary as we determine arguments to the config script
-            'arguments' : f'$(run_script) $(our_job_id) $(env_script) $(conf_script) $(output_dir) {extra_config_args} {input_arg_name}'
+            'arguments' : f'$(run_script) $(our_job_id) $(singularity_img) $(conf_script) $(output_dir) {extra_config_args} {input_arg_name}'
           })
 
         self['requirements'] = utility.dont_use_machine('caffeine')

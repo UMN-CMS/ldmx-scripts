@@ -17,8 +17,8 @@ parser.add_argument("-c",metavar='CONFIG',dest='config',required=True,type=str,h
 parser.add_argument("-o",metavar='OUT_DIR',dest='out_dir',required=True,type=str,help="OUT_DIR is directory to copy output to. If the path given is relative (i.e. does not begin with '/'), then we assume it is relative to your hdfs directory: %s"%hdfs_dir())
 
 environment = parser.add_mutually_exclusive_group(required=True)
-environment.add_argument('-e',metavar='ENV_SCRIPT',dest='env_script',type=str,help="Environment script to run before running fire.")
-environment.add_argument('-l',metavar='LDMX_VERSION',dest='ldmx_version',type=str,help="LDMX Version to pick a pre-made environment script.")
+environment.add_argument('-s',metavar='SING_IMG',dest='singularity_img',type=str,help="Image to run inside of.")
+environment.add_argument('-d',metavar='DOCKER_TAG',dest='docker_tag',type=str,help="Full docker tag of image to run inside of. Will download if doesn't already exist.")
 
 how_many_jobs = parser.add_mutually_exclusive_group(required=True)
 how_many_jobs.add_argument('-i',metavar='INPUT_DIR',dest='input_dir',type=str,nargs='+',help="Directory containing input files to run over. If the path given is relative (i.e. does not begin with '/'), then we assume it is relative to your hdfs directory: %s"%hdfs_dir())
@@ -50,12 +50,15 @@ machine_choice.add_argument("--analysis",action='store_true',help='Use the scorp
 
 arg = parser.parse_args()
 
-if arg.env_script is not None :
-    env_script = os.path.realpath(arg.env_script)
+if arg.singularity_img is not None :
+    singularity_img = os.path.realpath(arg.singularity_img)
 else :
-    env_script = '%s/stable-installs/%s/setup.sh'%(local_dir(),arg.ldmx_version)
+    img_name = arg.docker_tag.replace(':','_').replace('/','_')
+    singularity_img = f'{local_dir()}/{img_name}.sif'
+    # singularity will prompt user if image already exists
+    os.system(f'singularity build {singularity_img} docker://{arg.docker_tag}')
 
-job_instructions = JobInstructions(arg.run_script, arg.out_dir, env_script, arg.config, 
+job_instructions = JobInstructions(arg.run_script, arg.out_dir, singularity_img, arg.config, 
     input_arg_name = arg.input_arg_name, extra_config_args = arg.config_args)
 
 job_instructions.memory(arg.max_memory)

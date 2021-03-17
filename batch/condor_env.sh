@@ -4,9 +4,6 @@
 # Setup Condor Batch environment for ldmx-sw
 ################################################################################
 
-# helpful alias for making a stable installation
-alias ldmx-make-stable='bash $LDMX_ENV_DIR/batch/make_stable.sh'
-
 # helpful alias for submitting batch jobs
 #   some weird condor configuration requires us to submit from scorpions
 #   so make sure to 'ssh scorpion1' before this
@@ -14,10 +11,14 @@ alias ldmx-submit-jobs='python3 $LDMX_ENV_DIR/batch/submit_jobs.py'
 
 # Launching everything from scorpion1 since zebras have been
 #   disconnected from HTCondor
-condor_q() {
-  ssh scorpion1 "condor_q $@"
-}
-alias condor_rm='ssh scorpion1 condor_rm'
+if [[ $(hostname) = "scorpion1"* ]]; then
+  #nothing
+else
+  condor_q() {
+    ssh scorpion1 "condor_q $@"
+  }
+  alias condor_rm='ssh scorpion1 condor_rm'
+fi
 
 # look at my job listing
 alias my-q='condor_q -submitter $USER'
@@ -35,9 +36,6 @@ file-count() {
 
 # Add our python modules to the PYTHONPATH to make things easier to run
 export PYTHONPATH=$PYTHONPATH:$LDMX_ENV_DIR/batch/python/
-
-# define a helpful variable for make_stable.sh and accessing the stable installations
-export LDMX_STABLE_INSTALLS=$LDMX_BASE/stable-installs
 
 # check that the input host has hdfs and cvmfs
 check-host() {

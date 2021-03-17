@@ -2,18 +2,13 @@
 
 This repository is focused on helping LDMX collaborators use ldmx-sw at UMN.
 
-Currently, UMN does *not* have a container running program installed, 
-so we still have to construct the dependencies from `cvmfs` and building them ourselves.
-Look at the [bare metal build](bare_metal_build.md) notes for how the dependencies have been set up.
+As of March 17, 2021, `singularity` has been installed on all zebra and scorpion machines.
+This means we can effectively archive our bare metal build here and use the standard container-based build.
 
-This has been done in the `ldmx-env.sh` bash script.
+Look at the [bare metal build](bare_metal_build.md) notes for how the dependencies outside of the container were set up.
 
 ## Quick Start
 
-- Setup Environment: `source ldmx-env.sh`
-  - **This assumes that `ldmx-sw` is downloaded alongside this repository.**
-- Configure the Build: `cd ldmx-sw; mkdir build; cd build; ldmx-cmake`
-- Make and Install: `make -j4 install`
-- Run: `fire config.py`
+With singularity installed, we can follow the regular quick start instructions on the [ldmx-sw/README](https://github.com/LDMX-Software/ldmx-sw#quick-start) starting at step three.
 
 For a more detailed explanation, look at the [Getting Started Guide](getting_started.md).

@@ -36,10 +36,10 @@ The file `~/.bashrc` is run everytime you log into a UMN computer, so we are goi
 
 ```
 echo "# source ldmx environment setup script" >> ~/.bashrc
-echo "alias ldmxenv='source /local/cms/user/$USER/ldmx/ldmx-scripts/ldmx-env.sh'" >> ~/.bashrc
+echo "alias ldmx-env='source /local/cms/user/$USER/ldmx/ldmx-scripts/ldmx-env.sh; unalias ldmx-env'" >> ~/.bashrc
 ```
 
-Now, you can run `ldmxenv` to setup the computing environment.
+Now, you can run `ldmx-env` to setup the computing environment.
 
 ## Getting ldmx-sw
 
@@ -60,7 +60,7 @@ Before we can compile ldmx-sw, we need to configure the build so that the compil
 cd ldmx-sw
 mkdir build
 cd build
-ldmxcmake
+ldmx cmake ..
 ```
 
 ## Building and Installing
@@ -68,7 +68,7 @@ ldmxcmake
 Now that the build is configured, we can compile and install.
 
 ```
-make -j4 install
+ldmx make -j4 install
 ```
 
 The `-j4` option tells the program `make` to use `4` cores during the compilation. This helps speed up the build, but may hide any compilation errrors that could pop up during the compiling!
@@ -79,5 +79,5 @@ ldmx-sw compiles a program called `fire` which runs our simulation and reconstru
 
 ```
 cd .. #move out of the ldmx-sw/build directory into ldmx-sw
-fire SimCore/test/basic.py
+ldmx fire SimCore/test/basic.py
 ```

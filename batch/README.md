@@ -1,9 +1,6 @@
 # Batch at UMN
 This directory contains the basic files you need to submit batch jobs to UMN through the condor system.
-In order to run batch jobs, there is a series of set-up steps that are necessary.
 To get access to the pre-defined bash aliases after source the LDMX environment script, run `ldmx-condor-env` to import those commands.
-
-**Note**: The currently documented use case where ldmx-sw and some of its custom dependencies are installed on `/local/` has a major flaw. If the number of jobs using this method goes above ~100, the `/local/` filesystem starts to get overloaded and computers slow way down. With that in mind, a medium-term (but less flexible) method is being implemented where ldmx-sw and its dependencies are installed in `/export/scratch/` and manually copied to the other worker nodes.
 
 In this document and the source files themselves, I use a few short-hand phrases to refer to specific things.
 
@@ -11,10 +8,12 @@ In this document and the source files themselves, I use a few short-hand phrases
 - "your hdfs directory" : This refers to `/hdfs/cms/user/$USER/ldmx/`
 - "your local directory" : This refers to `/local/cms/user/$USER/ldmx/`
 
-## Build Stable Installation
-First, we need to create a "stable" installation of ldmx-sw so that the batch jobs can be running along in the background and you can keep doing other things. This directory has a bash script called `make_stable.sh` that will do this process for you. It can be run from (almost) anywhere, so a bash alias has been written for it in the `condor_env.sh` script.
-
-When you get the source code at `<your-local-dir>/ldmx-sw/` to where you want it. Then simply run `ldmx-make-stable` to create a stable installation at `<your-local-dir>/stable-installs/` and you can move on to the next step.
+## Production Image
+First, we need to create the image that will be used to run all of the jobs.
+The image you need may already exist (for example, it could be one of the releases of ldmx-sw); however, you may need to create your own production image.
+The instructions for creating a production image are available [on ldmx-sw GitHub pages](https://ldmx-software.github.io/docs/custom-production-image.html).
+Both ldmx-sw and ldmx-analysis have Dockerfiles that will give you a good place to start with creating a docker image and 
+they both have GitHub Actions that allow each branch of the repositories to be built into docker images provided certain conditions are met.
 
 ## Config Script
 
@@ -27,12 +26,15 @@ The batch machinery does *nothing* to determine what the name of the output file
 **You are responsible for making sure the output files from your batch jobs do not conflict.** 
 A good habit is to have the `run_number` or `input_file` argument be used in the output file name so that you know that the output files are unique across the different jobs.
 
-### Test Config Script
-Check to make sure your config script and your stable installation run how you thinkthink it should. Make sure to open a new terminal so that you are starting from a clean environment (like the worker nodes will be).
+### Test Config Script and Container Image
+Check to make sure your config script runs how it should run within the image you have selected.
+You can do this on these machines using the following commands.
 ```
 cd <your-local-dir>
-source stable-installs/<install-name>/setup.sh
-fire my-config.py <run_number-or-input_file>
+singularity build username_repo_tag.sif docker://username/repo:tag
+ln -s username_repo_tag.sif ldmx_local_my-special-tag.sif
+source ldmx-sw/scripts/ldmx-env -r local -t my-special-tag
+ldmx fire my-config.py <run_number-or-input_file>
 ```
 
 ## Submit Jobs
@@ -51,7 +53,7 @@ The basic idea for production is to increment through a large number of random s
 You can see an example "production" script (although at a much smaller scale) in this directory: `production.py`.
 You would submit five jobs of this production script from this directory like so. 
 ```
-ldmx-submit-jobs -c production.py -o EXAMPLE -l v2.3.0 -n 5
+ldmx-submit-jobs -c production.py -o EXAMPLE -d ldmx/pro:v2.3.0 -n 5
 ```
 
 *Comments* :
@@ -65,11 +67,12 @@ Here, "analysis" could be anything that uses and input file (or files) and produ
 From our point of view, it doesn't matter if you are producing another event file (perhaps doing a different reconstruction for later analysis) or producing a file of histograms.
 Let's analyze the files that the above script generated using the `analysis.py` script in this directory.
 ```
-ldmx-submit-jobs -c analysis.py -o EXAMPLE/hists -i EXAMPLE -l v2.3.0 --files_per_job 2
+ldmx-submit-jobs -c analysis.py -o EXAMPLE/hists -i EXAMPLE -d ldmx/pro:v2.3.0 --files_per_job 2
 ```
 
 *Comments*:
 - Like the output directory, the input directory is also relative to your hdfs directory unless a full path is specified.
+  **The current `run_fire.sh` script only mounts hdfs, so the container will think directories/files outside of hdfs don't exist.**
 - Since there are five files to analyze and we are asking for two files per job, we will have three jobs 
 (two with two files and one with one).
 
@@ -93,7 +96,7 @@ Refill assumes that you want to refill an output directory, so simply give it an
 
 To see that it works, delete any two of the production files that we generated (except the first and the last!) and then run the following.
 ```
-ldmx-submit-jobs -c production.py -o EXAMPLE -l v2.3.0 -r
+ldmx-submit-jobs -c production.py -o EXAMPLE -d ldmx/pro:v2.3.0 -r
 ```
 
 ### Output

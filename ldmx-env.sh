@@ -8,14 +8,63 @@
 # get the directory of this script
 export LDMX_ENV_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" &>/dev/null && pwd )"
 
+# use the larger export scratch for temp working
+export TMPDIR=/export/scratch/users/$USER
+mkdir -p $TMPDIR
+
 # This is the full path to the directory containing ldmx-sw
 _base="$( cd "${LDMX_ENV_DIR}/../" &>/dev/null && pwd)"
+
+# define cache location
+export SINGULARITY_CACHEDIR=$_base/.singularity
 
 # Setup container environment
 if ! source $_base/ldmx-sw/scripts/ldmx-env.sh -b $_base $@; then
   echo "ERROR from container setup script."
   return 1
 fi
+
+# We also use a python and ROOT install outside of the container
+
+# Custom Python has the HTCondor API installed
+export PYTHONHOME="/local/cms/user/eichl008/python/install"
+export LD_LIBRARY_PATH=$PYTHONHOME/lib:$LD_LIBRARY_PATH
+export PATH=$PYTHONHOME/bin:$PATH
+export PYTHONPATH=$PYTHONHOME/lib/python3:$PYTHONPATH
+
+# try to import root when opening pyroot interactive
+alias pyroot='python3 -i -c "import ROOT"'
+
+# sometimes our computers are disconnected from cvmfs
+#   so we need to check if we found the necessary source files
+_we_good="YES"
+
+# Setup the input package
+#   if the path contains 'cvmfs', then we assume we are given
+#     a path to cvmfs package and source the corresponding init.sh
+#   otherwise, source the input
+ldmx-env-source() {
+  _file_to_source="$1"
+  if [[ "$1" == *"cvmfs"* ]]
+  then
+    _file_to_source=$1/etc/profile.d/init.sh
+  fi
+  
+  if ! source $_file_to_source
+  then
+    _we_good="$_file_to_source"
+  fi
+}
+
+# newer version of ROOT is closer to what's inside the container
+source /local/cms/user/eichl008/root/6.22.06/install/bin/thisroot.sh
+# location of cms shared libraries
+_cvmfs_dir="/cvmfs/cms.cern.ch/slc7_amd64_gcc820"
+ldmx-env-source $_cvmfs_dir/external/bz2lib/1.0.6 #bz2lib
+ldmx-env-source $_cvmfs_dir/external/zlib/1.0  #zlib
+ldmx-env-source $_cvmfs_dir/external/gcc/8.2.0 #gcc
+
+# Other helpful aliases and functions below
 
 # prepends fire with valgrind to check for memory leaks
 alias ldmx-val='valgrind --tool=memcheck --leak-check=yes --suppressions=$ROOTSYS/etc/root/valgrind-root.supp --log-file=memcheck.log fire'

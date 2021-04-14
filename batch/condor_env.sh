@@ -9,15 +9,6 @@
 #   so make sure to 'ssh scorpion1' before this
 alias ldmx-submit-jobs='python3 $LDMX_ENV_DIR/batch/submit_jobs.py'
 
-# Launching everything from scorpion1 since zebras have been
-#   disconnected from HTCondor
-if [[ ! $(hostname) = "scorpion1"* ]]; then
-  condor_q() {
-    ssh scorpion1 "condor_q $@"
-  }
-  alias condor_rm='ssh scorpion1 condor_rm'
-fi
-
 # look at my job listing
 alias my-q='condor_q -submitter $USER'
 

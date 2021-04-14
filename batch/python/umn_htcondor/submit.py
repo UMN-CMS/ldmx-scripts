@@ -54,7 +54,7 @@ class JobInstructions(htcondor.Submit) :
 
     def __init__(self,
         executable_path, output_dir, singularity_img, config,
-        input_arg_name = '', extra_config_args = '') :
+        input_arg_name = '', extra_config_args = '', program = 'fire') :
 
         self.__cluster_id = 0
         self.__full_out_dir_path = utility.full_dir(output_dir)
@@ -70,10 +70,10 @@ class JobInstructions(htcondor.Submit) :
         # the config script is copied to the output directory for persistency
         #   and so that the jobs have a stable version
         full_config_path = utility.full_file(config)
-        shutil.copy2(full_config_path, os.path.join(self.__full_detail_dir_path,'config.py'))
+        shutil.copy2(full_config_path, os.path.join(self.__full_detail_dir_path,'script.py'))
 
         full_run_script = utility.full_file(executable_path)
-        shutil.copy2(full_run_script, os.path.join(self.__full_detail_dir_path,'run_fire.sh'))
+        shutil.copy2(full_run_script, os.path.join(self.__full_detail_dir_path,'run_ldmx.sh'))
 
         # log directory inside of detail directory
         log_dir = utility.full_dir(os.path.join(self.__full_detail_dir_path,'logs'))
@@ -115,17 +115,17 @@ class JobInstructions(htcondor.Submit) :
             # Condor log file
             'log' : f'{log_dir}/$(our_job_id).log',
             # Pass the username through the environment, so the bash script can use $USER
-            'environment' : classad.quote(f'USER={getpass.getuser()},LDMX_BASE={os.environ["LDMX_BASE"]}'),
+            'environment' : classad.quote(f'USER={getpass.getuser()} LDMX_BASE={os.environ["LDMX_BASE"]}'),
             # Just some helpful variables to clean up the long arguments line
             'output_dir' : self.__full_out_dir_path,
-            'run_script' : '$(output_dir)/detail/run_fire.sh',
+            'run_script' : '$(output_dir)/detail/run_ldmx.sh',
             'singularity_img' : singularity_img,
-            'conf_script' : '$(output_dir)/detail/config.py',
+            'conf_script' : '$(output_dir)/detail/script.py',
             # This needs to match the correct order of the arguments in the run_fire.sh script
             #   The input file and any extra config arguments are optional and come after the
             #   three required arguments
             # We will be adding to this entry in the dictionary as we determine arguments to the config script
-            'arguments' : f'$(run_script) $(our_job_id) $(singularity_img) $(conf_script) $(output_dir) {extra_config_args} {input_arg_name}'
+            'arguments' : f'$(run_script) $(our_job_id) $(singularity_img) $(output_dir) {program} $(conf_script) {extra_config_args} {input_arg_name}'
           })
 
         self['requirements'] = utility.dont_use_machine('caffeine')
@@ -262,25 +262,35 @@ class JobInstructions(htcondor.Submit) :
         Parameters
         ----------
         input_dirs : list of str
-            List of input directories to run over
+            List of input directories, files, or file listings to run over
         num_files_per_job : int
             Number of files for each job to have (maximum, could be less)
         """
 
         if self.__items_to_loop_over is not None :
             raise Exception('Already defined how these jobs should run.')
-    
-        input_file_list = []
-        for input_dir in input_dirs :
-            # submitting the whole directory
-            full_input_dir = utility.full_dir(input_dir,False)
-            if 'hdfs' not in full_input_dir :
-                print(' WARN You are running jobs over files in a directory *not* in %s.'%hdfs_dir())
-    
-            input_file_list.extend(
-                [os.path.join(full_input_dir,f) for f in os.listdir(full_input_dir) if f.endswith('.root')]
-                )
-        #end loop over input directories
+
+        def smart_recursive_input(file_or_dir) :
+            """Recursively add the full path to the file or files in the input directory"""
+            full_list = []
+            if isinstance(file_or_dir,list) :
+                for entry in file_or_dir :
+                    full_list.extend(smart_recursive_input(entry))
+            elif os.path.isfile(file_or_dir) and file_or_dir.endswith('.root') :
+                full_list.append(os.path.realpath(file_or_dir))
+            elif os.path.isfile(file_or_dir) and file_or_dir.endswith('.list') :
+                with open(file_or_dir) as listing :
+                    file_listing = listing.readlines()
+        
+                full_list.extend(smart_recursive_input([f.strip() for f in file_listing]))
+            elif os.path.isdir(file_or_dir) :
+                full_list.extend(smart_recursive_input([os.path.join(file_or_dir,f) for f in os.listdir(file_or_dir)]))
+            else :
+                print(f"'{file_or_dir}' is not a ROOT file, a directory, or a list of files. Skipping.")
+            #file or directory
+            return full_list
+
+        input_file_list = smart_recursive_input(input_dirs)
     
         # we need to define a list of dictionaries that htcondor submission will loop over
         #   we partition the list of input files into space separate lists of maximum length arg.files_per_job
@@ -398,10 +408,10 @@ class JobInstructions(htcondor.Submit) :
         f.write("== Condor Configuration ==\n")
         print(self, file=f)
         f.write("\n== Run Script ==\n")
-        with open(self.__full_detail_dir_path+'/run_fire.sh') as rs :
+        with open(self.__full_detail_dir_path+'/run_ldmx.sh') as rs :
             f.write(rs.read())
         f.write("\n== Config Script ==\n")
-        with open(self.__full_detail_dir_path+'/config.py') as conf :
+        with open(self.__full_detail_dir_path+'/script.py') as conf :
             f.write(conf.read())
         f.write("\n== List of Items ==\n")
         f.write(json.dumps(self.__items_to_loop_over,indent=1))
@@ -410,11 +420,12 @@ class JobInstructions(htcondor.Submit) :
         """Actually submit the job instructions to the batch system."""
         schedd = htcondor.Schedd()
         with schedd.transaction() as txn :
-          submit_result = self.queue_with_itemdata(txn, itemdata=iter(self.__items_to_loop_over))
-          self.__cluster_id = submit_result.cluster()
-          print(f'Submitted to Cluster {self.__cluster_id}')
-          with open(f'{self.__full_detail_dir_path}/submit.{self.__cluster_id}.log','w') as log :
-              self._log_submission(log)
+            submit_result = self.queue_with_itemdata(txn, itemdata=iter(self.__items_to_loop_over))
+            self.__cluster_id = submit_result.cluster()
+            print(f'Submitted to Cluster {self.__cluster_id}')
+
+        with open(f'{self.__full_detail_dir_path}/submit.{self.__cluster_id}.log','w') as log :
+            self._log_submission(log)
 
     def submit_interactive(self) :
         """Submit to the batch system while checking with the user along the way"""

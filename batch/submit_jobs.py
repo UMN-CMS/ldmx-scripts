@@ -32,7 +32,8 @@ parser.add_argument("--files_per_job",type=int,default=10,help="If running over 
 
 # rarely-used optional args
 full_path_to_dir_we_are_in=os.path.dirname(os.path.realpath(__file__))
-parser.add_argument("--run_script",type=str,help="Script to run jobs on worker nodes with.",default='%s/run_fire.sh'%full_path_to_dir_we_are_in)
+parser.add_argument("--run_script",type=str,help="Script to run jobs on worker nodes with.",default='%s/run_ldmx.sh'%full_path_to_dir_we_are_in)
+parser.add_argument("--program",type=str,help="Program to run inside the container.",default="fire")
 parser.add_argument("--config_args",type=str,default='',help="Extra arguments to be passed to the configuration script. Passed after the run_number or input_file.")
 parser.add_argument("--nocheck",action='store_true',help="Don't pause to look at job details before submitting.")
 parser.add_argument("--nonice",action='store_true',dest="nonice",help="Do not run this at nice priority.")
@@ -59,7 +60,7 @@ else :
     os.system(f'singularity build {singularity_img} docker://{arg.docker_tag}')
 
 job_instructions = JobInstructions(arg.run_script, arg.out_dir, singularity_img, arg.config, 
-    input_arg_name = arg.input_arg_name, extra_config_args = arg.config_args)
+    input_arg_name = arg.input_arg_name, extra_config_args = arg.config_args, program = arg.program)
 
 job_instructions.memory(arg.max_memory)
 job_instructions.disk(arg.max_disk)

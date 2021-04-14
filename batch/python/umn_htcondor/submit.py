@@ -115,7 +115,7 @@ class JobInstructions(htcondor.Submit) :
             # Condor log file
             'log' : f'{log_dir}/$(our_job_id).log',
             # Pass the username through the environment, so the bash script can use $USER
-            'environment' : classad.quote(f'USER={getpass.getuser()}'),
+            'environment' : classad.quote(f'USER={getpass.getuser()},LDMX_BASE={os.environ["LDMX_BASE"]}'),
             # Just some helpful variables to clean up the long arguments line
             'output_dir' : self.__full_out_dir_path,
             'run_script' : '$(output_dir)/detail/run_fire.sh',

@@ -12,8 +12,14 @@ export LDMX_ENV_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" &>/dev/null && pwd
 export TMPDIR=/export/scratch/users/$USER
 mkdir -p $TMPDIR
 
-# This is the full path to the directory containing ldmx-sw
+# This is the full path to the directory containing ldmx-sw on local
 _base="$( cd "${LDMX_ENV_DIR}/../" &>/dev/null && pwd)"
+
+# Check for /export/scratch copy for working on interactive node
+_interactive_base="/export/scratch/users/$USER/ldmx"
+if [[ -d ${_interactive_base}/ldmx-sw ]]; then
+  _base="${_interactive_base}"
+fi
 
 # define cache location
 export SINGULARITY_CACHEDIR=$_base/.singularity

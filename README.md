@@ -9,6 +9,6 @@ Look at the [bare metal build](bare_metal_build.md) notes for how the dependenci
 
 ## Quick Start
 
-With singularity installed, we can follow the regular quick start instructions on the [ldmx-sw/README](https://github.com/LDMX-Software/ldmx-sw#quick-start) starting at step three.
+With singularity installed, we can follow the regular quick start instructions on the [ldmx-sw/README](https://github.com/LDMX-Software/ldmx-sw#quick-start) starting at step three. **Warning**: The home directory at UMN is not large enough to do meaningful work with ldmx-sw. You should use a directory in `/local/` or `/export/scratch/`.
 
 For a more detailed explanation, look at the [Getting Started Guide](getting_started.md).

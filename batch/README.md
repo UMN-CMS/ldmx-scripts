@@ -58,7 +58,7 @@ ldmx-submit-jobs -c production.py -o EXAMPLE -d ldmx/pro:v2.3.0 -n 5
 
 *Comments* :
 - The output directory defined using `-o` is relative to your hdfs directory (so you will find the output of these five jobs in `<your-hdfs-dir>/EXAMPLE/`. If you want the output in some other directory, you need to specify the full path.
-- The version of ldmx-sw you want to use can be defined using the name of the directory it is in when using `ldmx-make-stable`. Your options for a stable installation are in `/local/cms/user/$USER/ldmx/stable-installs/`.
+- The version of ldmx-sw you want to use can be defined by providing the production container using a DockerHub tag (`-d`) or providing the path to the singularity file you built (`-s`).
 - By default, the run numbers will start at `0` and count up from there. You can change the first run number by using the `--start_job` option. This is helpful when (for example), you want to run small group of jobs to make sure everything is working, but you don't want to waste time re-running the same run numbers.
 
 #### 2. Analysis
@@ -72,7 +72,7 @@ ldmx-submit-jobs -c analysis.py -o EXAMPLE/hists -i EXAMPLE -d ldmx/pro:v2.3.0 -
 
 *Comments*:
 - Like the output directory, the input directory is also relative to your hdfs directory unless a full path is specified.
-  **The current `run_fire.sh` script only mounts hdfs, so the container will think directories/files outside of hdfs don't exist.**
+  **The current `run_ldmx.sh` script only mounts hdfs, so the container will think directories/files outside of hdfs don't exist.**
 - Since there are five files to analyze and we are asking for two files per job, we will have three jobs 
 (two with two files and one with one).
 
@@ -112,3 +112,15 @@ We put all of these generated files in the `<output-directory>/detail` directory
 - You can use the command `condor_q` to see the current status of your jobs.
 - The `-long` option to `condor_q` or `condor_history` dumps all of the information about the job(s) that you have selected with the other command line options. This is helpful for seeing exactly what was run.
 - If you see a long list of sequential jobs "fail", it might be that a specific worker node isn't configured properly. Check that it is one worker-node's fault by running `my-q -held -long | uniq-hosts`. If only one worker node shows up (but you know that you have tens of failed jobs), then you can `ssh` to that machine to try to figure it out (or email csehelp if you aren't sure what to do). In the mean time, you can put that machine in your list of `Machine != <full machine name>` at the top of the submit file.
+
+# Dark Brem Signal Generation
+
+This sample generation is a special case that requires some modification.
+Normally, we want to recursively enter directories in order to get a list of all `.root` files to use as input.
+The DB event libraries are directories themselves, so we need to turn off recursion.
+Here is an example of submitting a job where we provide the directory hold the DB event libraries.
+Notice that we need _both_ `--no_recursive` _and_ `--files_per_job 1` so that we can run the DB sim once for each event library we have.
+
+```
+ldmx-submit-jobs -c db_sim.py -d ldmx/pro:edge -i /hdfs/cms/user/eichl008/ldmx/dark-brem-event-libraries --no_recursive -o TEST --files_per_job 1 --config_args "--num_events 20000 --material tungsten"
+```

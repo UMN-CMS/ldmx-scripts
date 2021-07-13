@@ -29,6 +29,7 @@ how_many_jobs.add_argument('-r','--refill',dest='refill',action='store_true',hel
 parser.add_argument("--input_arg_name",type=str,default='',help='Name of argument that should go before the input file or run number when passing it to the config script.')
 parser.add_argument("--start_job",type=int,default=0,help="Starting number to use when run numbers. Only used if NOT running over items in a directory.")
 parser.add_argument("--files_per_job",type=int,default=10,help="If running over an input directory, this argument defines how many files to group together per job.")
+parser.add_argument("--no_recursive",default=False,action='store_true',help='Should we NOT recursively enter the input directories?')
 
 # rarely-used optional args
 full_path_to_dir_we_are_in=os.path.dirname(os.path.realpath(__file__))
@@ -101,7 +102,7 @@ if arg.periodic_release :
     job_instructions.periodic_release()
 
 if arg.input_dir is not None :
-    job_instructions.run_over_input_dirs(arg.input_dir, arg.files_per_job)
+    job_instructions.run_over_input_dirs(arg.input_dir, arg.files_per_job, not arg.no_recursive)
 elif arg.refill :
     job_instructions.run_refill()
 else :

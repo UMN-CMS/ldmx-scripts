@@ -255,7 +255,7 @@ class JobInstructions(htcondor.Submit) :
 
         self['periodic_release'] = held_by_us.and_((exit_code == 99).or_(exit_code == 100).or_(exit_code == 117).or_(exit_code == 118))
 
-    def run_over_input_dirs(self, input_dirs, num_files_per_job) :
+    def run_over_input_dirs(self, input_dirs, num_files_per_job, recursive = True) :
         """Have the config script run over num_files_per_job files taken from input_dirs, generating jobs
         until all of the files in input_dirs are included.
 
@@ -265,6 +265,8 @@ class JobInstructions(htcondor.Submit) :
             List of input directories, files, or file listings to run over
         num_files_per_job : int
             Number of files for each job to have (maximum, could be less)
+        recursive : bool
+            True if we should recursively search for root and list files in the supplied directories
         """
 
         if self.__items_to_loop_over is not None :
@@ -283,14 +285,20 @@ class JobInstructions(htcondor.Submit) :
                     file_listing = listing.readlines()
         
                 full_list.extend(smart_recursive_input([f.strip() for f in file_listing]))
-            elif os.path.isdir(file_or_dir) :
-                full_list.extend(smart_recursive_input([os.path.join(file_or_dir,f) for f in os.listdir(file_or_dir)]))
+            elif os.path.isdir(utility.full_dir(file_or_dir)) :
+                d = utility.full_dir(file_or_dir)
+                full_list.extend(smart_recursive_input([os.path.join(d,f) for f in os.listdir(d)]))
             else :
                 print(f"'{file_or_dir}' is not a ROOT file, a directory, or a list of files. Skipping.")
             #file or directory
             return full_list
 
-        input_file_list = smart_recursive_input(input_dirs)
+        if recursive :
+            input_file_list = smart_recursive_input(input_dirs)
+        else :
+            input_file_list = []
+            for d in [utility.full_dir(d) for d in input_dirs] :
+                input_file_list.extend([os.path.join(d,f) for f in os.listdir(d)])
     
         # we need to define a list of dictionaries that htcondor submission will loop over
         #   we partition the list of input files into space separate lists of maximum length arg.files_per_job

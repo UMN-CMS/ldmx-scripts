@@ -6,7 +6,7 @@ The bare metail build here at UMN depends mostly on CVMFS which is already used 
 This document is focused on how this bare metal build was constructed so that 
 we can hopefully make it easier to update the ldmx-sw environment here in the future.
 
-**Note**: I am expecting this bare metal build to be a stop-gap solution while we wait for singularity to be installed on our cluster.
+**Note**: This bare metal build has been archived and the associated environment scripts are saved in the [bare](https://github.com/UMN-CMS/ldmx-scripts/releases/tag/bare) release. Many of the dependencies built using these instructions will be or have been removed in order to save space on `/local/`.
 
 ## Current Environment
 

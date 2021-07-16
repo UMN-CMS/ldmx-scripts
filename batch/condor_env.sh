@@ -4,6 +4,12 @@
 # Setup Condor Batch environment for ldmx-sw
 ################################################################################
 
+# Custom Python has the HTCondor API installed
+PYTHONHOME="/local/cms/user/eichl008/python/install"
+export LD_LIBRARY_PATH=$PYTHONHOME/lib:$LD_LIBRARY_PATH
+export PATH=$PYTHONHOME/bin:$PATH
+export PYTHONPATH=$PYTHONHOME/lib/python3:$PYTHONPATH
+
 # helpful alias for submitting batch jobs
 #   some weird condor configuration requires us to submit from scorpions
 #   so make sure to 'ssh scorpion1' before this

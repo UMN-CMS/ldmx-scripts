@@ -298,7 +298,7 @@ class JobInstructions(htcondor.Submit) :
         else :
             input_file_list = []
             for d in [utility.full_dir(d) for d in input_dirs] :
-                input_file_list.extend([os.path.join(d,f) for f in os.listdir(d)])
+                input_file_list.extend([os.path.realpath(os.path.join(d,f)) for f in os.listdir(d)])
     
         # we need to define a list of dictionaries that htcondor submission will loop over
         #   we partition the list of input files into space separate lists of maximum length arg.files_per_job

@@ -39,7 +39,7 @@ fi
 mkdir $_job_id
 if ! cd $_job_id; then
   echo "Can't setup working directory."
-  exit 100
+  exit 98
 fi
 
 # Now that we have entered our working directory,
@@ -54,9 +54,10 @@ clean-up() {
 #   --no-home : don't mount home directory
 #   --bind : mount our current directory and /hdfs/ (for reading input files)
 if ! singularity run --no-home --bind $(pwd):/working_dir,${_output_dir} $_singularity_img -o ${_output_dir} $_args; then
-  echo "container returned an non-zero error status $?."
+  rc=$?
+  echo "container returned an non-zero error status ${rc}."
   clean-up
-  exit 115
+  exit ${rc}
 fi
 
 clean-up

@@ -67,13 +67,8 @@ class JobInstructions(htcondor.Submit) :
 
         utility.check_exists(singularity_img)
 
-        # the config script is copied to the output directory for persistency
-        #   and so that the jobs have a stable version
-        full_config_path = utility.full_file(config)
-        shutil.copy2(full_config_path, os.path.join(self.__full_detail_dir_path,'script.py'))
-
         full_run_script = utility.full_file(executable_path)
-        shutil.copy2(full_run_script, os.path.join(self.__full_detail_dir_path,'run_ldmx.sh'))
+        shutil.copy2(full_run_script, os.path.join(self.__full_detail_dir_path,'run.sh'))
 
         # log directory inside of detail directory
         log_dir = utility.full_dir(os.path.join(self.__full_detail_dir_path,'logs'))
@@ -90,7 +85,7 @@ class JobInstructions(htcondor.Submit) :
             # This line passes the ExitCode from the application as the hold subcode
             'on_exit_hold_subcode' : classad.Attribute('ExitCode'),
             # And we explain that the hold was because run_fire failed
-            'on_exit_hold_reason' : classad.quote('run_fire.sh returned non-zero exit code (stored in HoldReasonSubCode)'),
+            'on_exit_hold_reason' : classad.quote('run.sh returned non-zero exit code (stored in HoldReasonSubCode)'),
             # This line tells condor whether we should be 'nice' or not.
             #   Niceness is a way for condor to help determine how 'urgent' this job is
             #   Please default to alwasy being nice
@@ -118,15 +113,22 @@ class JobInstructions(htcondor.Submit) :
             'environment' : classad.quote(f'USER={getpass.getuser()} LDMX_BASE={os.environ["LDMX_BASE"]}'),
             # Just some helpful variables to clean up the long arguments line
             'output_dir' : self.__full_out_dir_path,
-            'run_script' : '$(output_dir)/detail/run_ldmx.sh',
-            'singularity_img' : singularity_img,
-            'conf_script' : '$(output_dir)/detail/script.py',
-            # This needs to match the correct order of the arguments in the run_fire.sh script
-            #   The input file and any extra config arguments are optional and come after the
-            #   three required arguments
-            # We will be adding to this entry in the dictionary as we determine arguments to the config script
-            'arguments' : f'$(run_script) $(our_job_id) $(singularity_img) $(output_dir) {program} $(conf_script) {extra_config_args} {input_arg_name}'
+            'run_script' : '$(output_dir)/detail/run.sh',
+            'singularity_img' : singularity_img
           })
+
+        # we deduce the arguments to the run script by whether a configuration script was provided
+        if config is None :
+            # assume the container has the program and script inside it
+            self['arguments'] = f'$(run_script) $(our_job_id) $(singularity_img) $(output_dir) {extra_config_args} {input_arg_name}'
+        else:
+            # the config script is copied to the output directory for persistency
+            #   and so that the jobs have a stable version
+            full_config_path = utility.full_file(config)
+            shutil.copy2(full_config_path, os.path.join(self.__full_detail_dir_path,'script.py'))
+            self['conf_script'] = '$(output_dir)/detail/script.py'
+            # need to provide program and script
+            self['arguments'] = f'$(run_script) $(our_job_id) $(singularity_img) $(output_dir) {program} $(conf_script) {extra_config_args} {input_arg_name}'
 
         self['requirements'] = utility.dont_use_machine('caffeine')
         for m in ['zebra01','zebra02','zebra03','zebra04'] :
@@ -416,11 +418,12 @@ class JobInstructions(htcondor.Submit) :
         f.write("== Condor Configuration ==\n")
         print(self, file=f)
         f.write("\n== Run Script ==\n")
-        with open(self.__full_detail_dir_path+'/run_ldmx.sh') as rs :
+        with open(self.__full_detail_dir_path+'/run.sh') as rs :
             f.write(rs.read())
-        f.write("\n== Config Script ==\n")
-        with open(self.__full_detail_dir_path+'/script.py') as conf :
-            f.write(conf.read())
+        if os.path.isfile(self.__full_detail_dir_path+'/script.py') :
+            f.write("\n== Config Script ==\n")
+            with open(self.__full_detail_dir_path+'/script.py') as conf :
+                f.write(conf.read())
         f.write("\n== List of Items ==\n")
         f.write(json.dumps(self.__items_to_loop_over,indent=1))
 

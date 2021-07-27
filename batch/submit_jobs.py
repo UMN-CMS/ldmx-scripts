@@ -13,7 +13,7 @@ parser = argparse.ArgumentParser('ldmx-submit-jobs',
     formatter_class=argparse.RawDescriptionHelpFormatter)
 
 # required args
-parser.add_argument("-c",metavar='CONFIG',dest='config',required=True,type=str,help="CONFIG is python configuration script to run.")
+parser.add_argument("-c",metavar='CONFIG',dest='config',type=str,help="CONFIG is python configuration script to run.")
 parser.add_argument("-o",metavar='OUT_DIR',dest='out_dir',required=True,type=str,help="OUT_DIR is directory to copy output to. If the path given is relative (i.e. does not begin with '/'), then we assume it is relative to your hdfs directory: %s"%hdfs_dir())
 
 environment = parser.add_mutually_exclusive_group(required=True)

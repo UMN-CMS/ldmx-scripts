@@ -38,7 +38,7 @@ ldmx fire my-config.py <run_number-or-input_file>
 ```
 
 ## Submit Jobs
-[HTCondor has a Python API](https://htcondor.readthedocs.io/en/latest/apis/python-bindings/tutorials/Submitting-and-Managing-Jobs.html) that we have used to specialize job submission to our use case of running the `fire` program.
+[HTCondor has a Python API](https://htcondor.readthedocs.io/en/latest/apis/python-bindings/) that we have used to specialize job submission to our use case of running the `fire` program.
 We have aliased the running of the `submit_jobs.py` script to `ldmx-submit-jobs`, so you can use it anywhere. Run `ldmx-submit-jobs -h` for an explanation of all its parameters.
 
 ### Examples

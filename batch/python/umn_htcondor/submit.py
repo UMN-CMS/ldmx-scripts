@@ -269,7 +269,7 @@ class JobInstructions(htcondor.Submit) :
         """
 
         self['arguments'] += add_args
-        self.__itesm_to_loop_over = items
+        self.__items_to_loop_over = items
 
     def run_over_input_dirs(self, input_dirs, num_files_per_job, recursive = True) :
         """Have the config script run over num_files_per_job files taken from input_dirs, generating jobs
@@ -393,7 +393,7 @@ class JobInstructions(htcondor.Submit) :
         if self.__items_to_loop_over is not None :
             raise Exception('Already defined how these jobs should run.')
 
-        self.run_over(' $(run_number)',[{'run_number' : str(r) for r in range(start, start+number)])
+        self.run_over(' $(run_number)',[{'run_number' : str(r)} for r in range(start, start+number)])
 
     def _pause_before(next_thing) :
         """Pause before the next thing and allow the user the option to exit the script."""

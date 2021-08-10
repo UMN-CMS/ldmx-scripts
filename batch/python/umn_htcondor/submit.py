@@ -257,6 +257,20 @@ class JobInstructions(htcondor.Submit) :
 
         self['periodic_release'] = held_by_us.and_((exit_code == 99).or_(exit_code == 100).or_(exit_code == 117).or_(exit_code == 118))
 
+    def run_over(self, add_args, items) :
+        """Lowest-level access to setting the items that we should loop over.
+
+        Parameters
+        ----------
+        add_args : str
+            Argument string to add to 'arguments' parameter
+        items : list[dict]
+            List of dictionary "items" that will be looped over for the jobs
+        """
+
+        self['arguments'] += add_args
+        self.__itesm_to_loop_over = items
+
     def run_over_input_dirs(self, input_dirs, num_files_per_job, recursive = True) :
         """Have the config script run over num_files_per_job files taken from input_dirs, generating jobs
         until all of the files in input_dirs are included.
@@ -315,9 +329,8 @@ class JobInstructions(htcondor.Submit) :
             #loop over full list
             return chunks
         #end def of partition
-
-        self['arguments'] += ' $(input_files)'
-        self.__items_to_loop_over = [{'input_files' : i} for i in partition(input_file_list, num_files_per_job)]
+        
+        self.run_over(' $(input_files)', [{'input_files' : i} for i in partition(input_file_list, num_files_per_job)])
 
     def run_refill(self) :
         """Get missing run numbers from output directory and submit those.
@@ -361,8 +374,7 @@ class JobInstructions(htcondor.Submit) :
 
         runs.sort()
 
-        self['arguments'] += ' $(run_number)'
-        self.__items_to_loop_over = [{'run_number' : str(r)} for r in range(runs[0],runs[-1]+1) if r not in runs]
+        self.run_over(' $(run_number)',[{'run_number':str(r)} for r in range(runs[0],runs[-1]+1) if r not in runs])
 
     def run_numbers(self, start, number):
         """Run over iterated run numbers
@@ -381,8 +393,7 @@ class JobInstructions(htcondor.Submit) :
         if self.__items_to_loop_over is not None :
             raise Exception('Already defined how these jobs should run.')
 
-        self['arguments'] += ' $(run_number)'
-        self.__items_to_loop_over = [{'run_number' : str(r)} for r in range(start, start+number)]
+        self.run_over(' $(run_number)',[{'run_number' : str(r) for r in range(start, start+number)])
 
     def _pause_before(next_thing) :
         """Pause before the next thing and allow the user the option to exit the script."""

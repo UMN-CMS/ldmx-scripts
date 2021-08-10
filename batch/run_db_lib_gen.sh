@@ -53,7 +53,7 @@ clean-up() {
 # Singularity command to run the fire executable
 #   --no-home : don't mount home directory
 #   --bind : mount our current directory and /hdfs/ (for reading input files)
-if ! singularity run --no-home --bind $(pwd):/working_dir,${_output_dir} $_singularity_img -o ${_output_dir} $_args; then
+if ! singularity run --no-home --bind $(pwd):/working_dir,${_output_dir} $_singularity_img --out_dir ${_output_dir} $_args; then
   rc=$?
   echo "container returned an non-zero error status ${rc}."
   clean-up

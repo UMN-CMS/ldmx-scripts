@@ -22,7 +22,7 @@ alias my-q='condor_q -submitter $USER'
 alias my-q-totals='my-q -totals'
 
 # watch the job totals
-alias watch-q='watch -n 30 ssh scorpion1 condor_q -submitter $USER -totals'
+alias watch-q='watch -n 30 condor_q -submitter $USER -totals'
 
 # Count the number of root files in the input directory
 file-count() {

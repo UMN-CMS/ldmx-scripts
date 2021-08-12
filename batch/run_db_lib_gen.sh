@@ -10,7 +10,7 @@ set -x
 ###############################################################################
 
 _job_id=$1 #should be unique between jobs submitted by the same user
-_singularity_img=$2 #singularity img to use to run
+_singularity_img=$2 #singularity img to use to run, should be in /local/cms/user/$USER/ldmx/
 _output_dir=$3 #output directory to copy products to, should be in /hdfs/cms/user/$USER/ldmx/
 _args=${@:4} #arguments to container, input files should be in /hdfs/cms/user/$USER/ldmx/
 
@@ -53,11 +53,6 @@ clean-up() {
 # Singularity command to run the fire executable
 #   --no-home : don't mount home directory
 #   --bind : mount our current directory and /hdfs/ (for reading input files)
-if ! singularity run --no-home --bind $(pwd):/working_dir,${_output_dir} $_singularity_img --out_dir ${_output_dir} $_args; then
-  rc=$?
-  echo "container returned an non-zero error status ${rc}."
-  clean-up
-  exit ${rc}
-fi
+singularity run --no-home --bind $(pwd):/working_dir,${_output_dir} $_singularity_img --out_dir ${_output_dir} $_args || exit $?
 
 clean-up

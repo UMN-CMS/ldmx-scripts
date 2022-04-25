@@ -53,6 +53,6 @@ clean-up() {
 # Singularity command to run the fire executable
 #   --no-home : don't mount home directory
 #   --bind : mount our current directory and /hdfs/ (for reading input files)
-singularity run --no-home --bind $(pwd):/working_dir,${_output_dir} $_singularity_img --out_dir ${_output_dir} $_args || exit $?
+singularity run --no-home --bind $(pwd):/working,${_output_dir}:/output $_singularity_img $_args || exit $?
 
 clean-up
